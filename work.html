@@ -36,7 +36,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
-        /* 剧本展示区 */
+        /* 剧本及事件展示区 */
         #script-area {
             flex: 1; border: 2px solid #5d4037; background: #fff; padding: 10px;
             border-radius: 5px; font-size: 14px; line-height: 1.6;
@@ -44,6 +44,31 @@
         }
         .script-title { font-weight: bold; color: #d35400; font-size: 16px; margin-bottom: 5px; }
         
+        /* CP事件弹窗样式 */
+        .cp-box {
+            background: #fff0f5; border: 1px dashed #ff69b4; border-radius: 6px;
+            padding: 10px; margin-top: 10px; text-align: center;
+        }
+        .cp-title { color: #c71585; font-weight: bold; font-size: 13px; margin-bottom: 5px;}
+        .cp-btns { display: flex; justify-content: center; gap: 10px; margin-top: 5px; }
+        .cp-btn { padding: 4px 12px; font-size: 12px; background: #fff; border: 1px solid #ff69b4; color: #ff69b4; border-radius: 4px; cursor: pointer;}
+        .cp-btn:hover { background: #ff69b4; color: #fff; }
+        .cp-btn.active { background: #ff1493; color: #fff; border-color: #ff1493; }
+
+        /* 结算样式 */
+        .result-box {
+            text-align: center; padding: 10px; border-radius: 6px; margin-top: 10px;
+            font-weight: bold; font-size: 15px;
+        }
+        .result-boom { background: #ffe6e6; color: #cc0000; border: 1px solid #cc0000; }
+        .result-normal { background: #f0f0f0; color: #555555; border: 1px solid #555555; }
+        .result-burst { background: #e6ffe6; color: #008800; border: 1px solid #008800; animation: blink 1s infinite alternate; }
+        
+        @keyframes blink {
+            from { box-shadow: 0 0 2px #008800; }
+            to { box-shadow: 0 0 10px #00ff00; }
+        }
+
         .btn-group { text-align: center; margin-top: auto; }
         button {
             padding: 8px 20px; font-size: 14px; font-weight: bold;
@@ -78,34 +103,39 @@
         <button id="rand-btn" onclick="refreshOptions()">换一批选项</button>
         <button id="confirm-btn" onclick="confirmSelection()" style="display:none; background:#d35400; color:white;">构思剧本</button>
         <button id="shoot-btn" onclick="startShoot()" style="display:none;">开机拍摄!</button>
+        <button id="finish-btn" onclick="finishAndReward()" style="display:none; background:#27ae60; color:white;">杀青领片酬!</button>
     </div>
 </div>
 
-<script src="scripts.js"></script>
+<script src="movieScripts.js"></script>
 
 <script>
-    // 定义原始数据池（用于随机抽选）
-    const allRoles = ["凶凶职场女强人", "平凡主妇", "傲娇大小姐", "MI6特工", "医生", "心理医生", "魔女", "女明星", "杀人犯", "单亲妈妈", "霸道总裁", "律师", "督察", "笨蛋警察", "时尚杂志主编", "冷脸杀手", "恋爱脑", "隐退大姐大"];
-    const allGenres = ["情景片", "浪漫言情", "悬疑惊悚", "穿越片", "职场商战", "豪门争斗片", "恐怖片", "警匪片", "狗血爱情片", "爆笑喜剧"];
+    const allRoles = ["凶凶职场女强人", "傲娇大小姐", "MI6特工", "医生", "心理医生", "女明星", "杀人犯", "单亲妈妈", "霸道总裁", "律师", "督察", "笨蛋警察", "冷脸杀手", "恋爱脑", "隐退大姐大", "苦逼打工人"];
+    const allGenres = ["虐恋复仇片", "浪漫言情", "悬疑惊悚", "穿越片", "职场商战", "豪门争斗片", "恐怖片", "警匪片", "爆笑喜剧"];
 
     let userRole = "";
     let userGenre = "";
     let selectedScript = null;
+    
+    // 新增游戏状态变量
+    let cpChoice = null; // 'agree' 营业, 'refuse' 拒绝, null 未选
+    let finalMoney = 0;
 
-    // 初始化/刷新选项
     function refreshOptions() {
         userRole = "";
         userGenre = "";
         selectedScript = null;
+        cpChoice = null;
+        finalMoney = 0;
         
-        // UI重置
         document.getElementById('selector').style.display = 'flex';
         document.getElementById('script-area').style.display = 'none';
         document.getElementById('confirm-btn').style.display = 'none';
         document.getElementById('shoot-btn').style.display = 'none';
+        document.getElementById('finish-btn').style.display = 'none';
         document.getElementById('rand-btn').innerText = '换一批选项';
+        document.getElementById('rand-btn').style.display = 'inline-block';
 
-        // 随机抽取4个
         const roles = [...allRoles].sort(() => 0.5 - Math.random()).slice(0, 4);
         const genres = [...allGenres].sort(() => 0.5 - Math.random()).slice(0, 4);
 
@@ -113,7 +143,6 @@
         renderTags('genre-options', genres, 'genre');
     }
 
-    // 渲染标签
     function renderTags(containerId, list, type) {
         const container = document.getElementById(containerId);
         container.innerHTML = "";
@@ -122,14 +151,12 @@
             span.className = 'option-tag';
             span.innerText = text;
             span.onclick = () => {
-                // 清除当前容器内其他选中的样式
                 Array.from(container.children).forEach(c => c.classList.remove('selected'));
                 span.classList.add('selected');
                 
                 if(type === 'role') userRole = text;
                 if(type === 'genre') userGenre = text;
 
-                // 检查是否都选好了
                 if(userRole && userGenre) {
                     document.getElementById('confirm-btn').style.display = 'inline-block';
                 }
@@ -138,9 +165,7 @@
         });
     }
 
-    // 确认选择并查找剧本
     function confirmSelection() {
-        // 在 scripts.js 的 movieScripts 数组中查找
         selectedScript = movieScripts.find(s => s.role === userRole && s.genre === userGenre);
 
         if(!selectedScript) {
@@ -148,7 +173,6 @@
             return;
         }
 
-        // 隐藏选择器，显示加载动画
         document.getElementById('selector').style.display = 'none';
         document.getElementById('confirm-btn').style.display = 'none';
         const area = document.getElementById('script-area');
@@ -160,20 +184,136 @@
                 <div class="script-title">《${selectedScript.title}》</div>
                 <div style="font-size:12px; color:#666; margin-bottom:8px;">主演角色：${userRole} | 影片类型：${userGenre}</div>
                 <div class="script-content">${selectedScript.desc}</div>
+                
+                <div class="cp-box">
+                    <div class="cp-title">💞 突发！投资方为了热度要求你与同剧组演员“炒CP”</div>
+                    <div style="font-size:11px; color:#666; margin-bottom:5px;">【同意】若爆火收益翻倍，若扑街会被反噬！【拒绝】纯靠作品说话，稳健但上限较低。</div>
+                    <div class="cp-btns">
+                        <button class="cp-btn" id="cp-yes" onclick="selectCP('agree')">配合营业 (高风险高收益)</button>
+                        <button class="cp-btn" id="cp-no" onclick="selectCP('refuse')">拒绝炒作 (专注演技)</button>
+                    </div>
+                </div>
                 <hr style="border:none; border-top:1px dashed #5d4037; margin:10px 0;">
-                <div style="text-align:center; font-size:13px;">—— 准备好开始拍摄了吗？ ——</div>
+                <div style="text-align:center; font-size:13px;">—— 请选择是否炒CP后开机 ——</div>
             `;
             document.getElementById('shoot-btn').style.display = 'inline-block';
+            document.getElementById('shoot-btn').disabled = true; // 必须选择CP走向才能开机
             document.getElementById('rand-btn').innerText = '放弃并重选';
         }, 1200);
     }
 
-    function startShoot() {
-        // 向父窗口 PetGame 发送消息，告知拍摄开始
-        window.parent.postMessage('workFinished', '*');
+    // 选择CP倾向
+    function selectCP(choice) {
+        cpChoice = choice;
+        document.getElementById('cp-yes').className = 'cp-btn' + (choice === 'agree' ? ' active' : '');
+        document.getElementById('cp-no').className = 'cp-btn' + (choice === 'refuse' ? ' active' : '');
+        document.getElementById('shoot-btn').disabled = false; // 解锁开机按钮
     }
 
-    // 页面启动
+    // 开始拍摄并计算最终走向
+    function startShoot() {
+        document.getElementById('shoot-btn').style.display = 'none';
+        document.getElementById('rand-btn').style.display = 'none';
+        
+        // 移除CP选择按钮的点击事件，使其固化
+        document.getElementById('cp-yes').removeAttribute('onclick');
+        document.getElementById('cp-no').removeAttribute('removeAttribute');
+
+        const area = document.getElementById('script-area');
+        // 追加拍摄中动画
+        const processDiv = document.createElement('div');
+        processDiv.className = 'loading';
+        processDiv.innerText = '🎬 紧张拍摄中，后期剪辑赶工中...';
+        area.appendChild(processDiv);
+        area.scrollTop = area.scrollHeight; // 滚动到底部
+
+        setTimeout(() => {
+            processDiv.remove(); // 移除加载字样
+            
+            // 1. 随机决定电影市场走向 (扑街 30% / 平淡 40% / 爆火 30%)
+            const rand = Math.random();
+            let trend = 'normal'; // 'boom'(扑), 'normal'(平淡), 'burst'(爆火)
+            let trendText = '';
+            let baseMoney = 100; // 基础片酬
+            let resultClass = '';
+
+            if (rand < 0.3) {
+                trend = 'boom';
+                trendText = '📉 票房扑街：宣发拉胯，剧情被喷，首周院线直接砍座……';
+                baseMoney = 30; 
+                resultClass = 'result-box result-boom';
+            } else if (rand < 0.7) {
+                trend = 'normal';
+                trendText = '🐱 表现平平：无功无过，粉丝包场，院线勉强回本。';
+                baseMoney = 100;
+                resultClass = 'result-box result-normal';
+            } else {
+                trend = 'burst';
+                trendText = '🔥 全网爆火！现象级出圈，单日票房夺冠，喜提多条热搜！';
+                baseMoney = 250;
+                resultClass = 'result-box result-burst';
+            }
+
+            // 2. 根据CP抉择计算最终利益加成
+            let cpText = "";
+            let multiplier = 1.0;
+
+            if (cpChoice === 'agree') {
+                if (trend === 'burst') {
+                    multiplier = 2.0; // 爆火且炒CP，收益翻倍！
+                    cpText = "【CP加成】戏内戏外疯狂发糖，吸干了CP粉的钱包，收益暴增！";
+                } else if (trend === 'boom') {
+                    multiplier = 0.3; // 扑街还炒CP，被疯狂反噬
+                    cpText = "【CP反噬】电影太烂还硬发糖，被全网群嘲“工业糖精”，口碑崩塌，收益血亏！";
+                } else {
+                    multiplier = 1.2; // 平淡时炒CP稍微多赚一点
+                    cpText = "【CP营业】靠着营业互动，勉强维持住了微博超话热度。";
+                }
+            } else { // refuse
+                if (trend === 'burst') {
+                    multiplier = 1.2; // 拒绝炒作但爆火，因“清流/专注演技”获得额外好评
+                    cpText = "【拒绝炒作】虽没炒CP，但由于你演技炸裂，被赞为业内清流，身价稳步上升！";
+                } else if (trend === 'boom') {
+                    multiplier = 0.9; // 扑街了，但因为没炒作，没有额外负面黑料
+                    cpText = "【拒绝炒作】幸好没有配合炒CP，虽然片子扑了，但个人羽毛总算保住了。";
+                } else {
+                    multiplier = 1.0;
+                    cpText = "【拒绝炒作】唯粉与剧粉各司其职，中规中矩地完成了单片结算。";
+                }
+            }
+
+            // 计算最终得到的金币/资金
+            finalMoney = Math.round(baseMoney * multiplier);
+
+            // 3. 将结果追加渲染到界面上
+            const resultDiv = document.createElement('div');
+            resultDiv.innerHTML = `
+                <div class="${resultClass}">
+                    <div>${trendText}</div>
+                    <div style="font-size:12px; font-weight:normal; margin-top:5px;">${cpText}</div>
+                    <div style="font-size:16px; margin-top:8px; color:#d35400;">💰 最终结算总收益：+${finalMoney} 资金</div>
+                </div>
+            `;
+            area.appendChild(resultDiv);
+            area.scrollTop = area.scrollHeight;
+
+            // 显示最终杀青按钮
+            document.getElementById('finish-btn').style.display = 'inline-block';
+        }, 1500);
+    }
+
+    // 杀青并向父窗口发送最终报酬
+    function finishAndReward() {
+        // 向母窗口 PetGame 发送带有金钱数据的消息
+        window.parent.postMessage({
+            event: 'workFinished',
+            money: finalMoney,
+            role: userRole,
+            genre: userGenre,
+            title: selectedScript ? selectedScript.title : ""
+        }, '*');
+    }
+
     window.onload = refreshOptions;
 </script>
 
