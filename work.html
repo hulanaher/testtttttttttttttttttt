@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>剧组筹备 - 拍戏系统</title>
+    <style>
+        body {
+            margin: 0; padding: 15px; font-family: "Microsoft YaHei", sans-serif;
+            background: #fdf6e3; color: #5d4037; overflow: hidden;
+        }
+        .container {
+            border: 3px solid #5d4037; border-radius: 8px;
+            padding: 15px; height: calc(100vh - 60px); display: flex; flex-direction: column;
+        }
+        h2 { text-align: center; margin: 0 0 15px 0; font-size: 18px; color: #d35400; }
+        
+        /* 选项布局 */
+        .selection-box { display: flex; flex-direction: column; gap: 15px; margin-bottom: 15px; }
+        .slot {
+            border: 2px dashed #5d4037; background: #fffbe6; padding: 10px;
+            text-align: center; border-radius: 5px;
+        }
+        .label { font-size: 12px; font-weight: bold; margin-bottom: 8px; display: block; color: #8d6e63; }
+        
+        /* 选项标签样式 */
+        .options-container { 
+            display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; 
+        }
+        .option-tag {
+            padding: 5px 10px; border: 1px solid #5d4037; border-radius: 4px;
+            font-size: 13px; cursor: pointer; background: white; transition: all 0.2s;
+        }
+        .option-tag:hover { background: #f0f0f0; }
+        .option-tag.selected { 
+            background: #d35400; color: white; border-color: #d35400; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* 剧本展示区 */
+        #script-area {
+            flex: 1; border: 2px solid #5d4037; background: #fff; padding: 10px;
+            border-radius: 5px; font-size: 14px; line-height: 1.6;
+            overflow-y: auto; display: none; margin-bottom: 10px;
+        }
+        .script-title { font-weight: bold; color: #d35400; font-size: 16px; margin-bottom: 5px; }
+        
+        .btn-group { text-align: center; margin-top: auto; }
+        button {
+            padding: 8px 20px; font-size: 14px; font-weight: bold;
+            cursor: pointer; border: 2px solid #5d4037; border-radius: 4px;
+            background: #f8d088; color: #5d4037; margin: 0 5px;
+        }
+        button:hover { background: #fb8c00; color: white; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        
+        .loading { color: #d35400; font-style: italic; text-align: center; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🎭 角色题材碰撞</h2>
+
+    <div class="selection-box" id="selector">
+        <div class="slot">
+            <span class="label">选择角色 (Role)</span>
+            <div id="role-options" class="options-container"></div>
+        </div>
+        <div class="slot">
+            <span class="label">选择题材 (Genre)</span>
+            <div id="genre-options" class="options-container"></div>
+        </div>
+    </div>
+
+    <div id="script-area"></div>
+
+    <div class="btn-group">
+        <button id="rand-btn" onclick="refreshOptions()">换一批选项</button>
+        <button id="confirm-btn" onclick="confirmSelection()" style="display:none; background:#d35400; color:white;">构思剧本</button>
+        <button id="shoot-btn" onclick="startShoot()" style="display:none;">开机拍摄!</button>
+    </div>
+</div>
+
+<script src="scripts.js"></script>
+
+<script>
+    // 定义原始数据池（用于随机抽选）
+    const allRoles = ["凶凶职场女强人", "平凡主妇", "傲娇大小姐", "MI6特工", "医生", "心理医生", "魔女", "女明星", "杀人犯", "单亲妈妈", "霸道总裁", "律师", "督察", "笨蛋警察", "时尚杂志主编", "冷脸杀手", "恋爱脑", "隐退大姐大"];
+    const allGenres = ["情景片", "浪漫言情", "悬疑惊悚", "穿越片", "职场商战", "豪门争斗片", "恐怖片", "警匪片", "狗血爱情片", "爆笑喜剧"];
+
+    let userRole = "";
+    let userGenre = "";
+    let selectedScript = null;
+
+    // 初始化/刷新选项
+    function refreshOptions() {
+        userRole = "";
+        userGenre = "";
+        selectedScript = null;
+        
+        // UI重置
+        document.getElementById('selector').style.display = 'flex';
+        document.getElementById('script-area').style.display = 'none';
+        document.getElementById('confirm-btn').style.display = 'none';
+        document.getElementById('shoot-btn').style.display = 'none';
+        document.getElementById('rand-btn').innerText = '换一批选项';
+
+        // 随机抽取4个
+        const roles = [...allRoles].sort(() => 0.5 - Math.random()).slice(0, 4);
+        const genres = [...allGenres].sort(() => 0.5 - Math.random()).slice(0, 4);
+
+        renderTags('role-options', roles, 'role');
+        renderTags('genre-options', genres, 'genre');
+    }
+
+    // 渲染标签
+    function renderTags(containerId, list, type) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = "";
+        list.forEach(text => {
+            const span = document.createElement('span');
+            span.className = 'option-tag';
+            span.innerText = text;
+            span.onclick = () => {
+                // 清除当前容器内其他选中的样式
+                Array.from(container.children).forEach(c => c.classList.remove('selected'));
+                span.classList.add('selected');
+                
+                if(type === 'role') userRole = text;
+                if(type === 'genre') userGenre = text;
+
+                // 检查是否都选好了
+                if(userRole && userGenre) {
+                    document.getElementById('confirm-btn').style.display = 'inline-block';
+                }
+            };
+            container.appendChild(span);
+        });
+    }
+
+    // 确认选择并查找剧本
+    function confirmSelection() {
+        // 在 scripts.js 的 movieScripts 数组中查找
+        selectedScript = movieScripts.find(s => s.role === userRole && s.genre === userGenre);
+
+        if(!selectedScript) {
+            alert("哎呀，导演说这个组合暂时没灵感，换个组合试试？");
+            return;
+        }
+
+        // 隐藏选择器，显示加载动画
+        document.getElementById('selector').style.display = 'none';
+        document.getElementById('confirm-btn').style.display = 'none';
+        const area = document.getElementById('script-area');
+        area.style.display = 'block';
+        area.innerHTML = '<div class="loading">导演正在疯狂码字中...</div>';
+
+        setTimeout(() => {
+            area.innerHTML = `
+                <div class="script-title">《${selectedScript.title}》</div>
+                <div style="font-size:12px; color:#666; margin-bottom:8px;">主演角色：${userRole} | 影片类型：${userGenre}</div>
+                <div class="script-content">${selectedScript.desc}</div>
+                <hr style="border:none; border-top:1px dashed #5d4037; margin:10px 0;">
+                <div style="text-align:center; font-size:13px;">—— 准备好开始拍摄了吗？ ——</div>
+            `;
+            document.getElementById('shoot-btn').style.display = 'inline-block';
+            document.getElementById('rand-btn').innerText = '放弃并重选';
+        }, 1200);
+    }
+
+    function startShoot() {
+        // 向父窗口 PetGame 发送消息，告知拍摄开始
+        window.parent.postMessage('workFinished', '*');
+    }
+
+    // 页面启动
+    window.onload = refreshOptions;
+</script>
+
+</body>
+</html>

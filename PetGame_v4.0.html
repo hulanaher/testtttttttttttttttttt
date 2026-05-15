@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>PetGame v4.0</title>
+    <style>
+        :root {
+            --bg-color: #f8d088;
+            --panel-color: #fffbe6;
+            --border-color: #5d4037;
+            --accent-color: #d35400;
+        }
+
+        body {
+            background-color: #333; display: flex; justify-content: center;
+            align-items: center; height: 100vh; margin: 0;
+            font-family: "Courier New", "Microsoft YaHei", monospace;
+        }
+
+        #game-container {
+            width: 480px; background-color: var(--bg-color);
+            border: 6px solid var(--border-color); border-radius: 12px;
+            padding: 15px; box-shadow: 0 10px 0 #222; position: relative;
+        }
+
+        .status-bar {
+            background: var(--panel-color); border: 3px solid var(--border-color);
+            padding: 10px; margin-bottom: 12px; font-weight: bold;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 14px;
+        }
+
+        #stage {
+            height: 380px; background-color: #aed581;
+            border: 3px solid var(--border-color); position: relative; overflow: hidden;
+            background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        #pet-anchor {
+            position: absolute; bottom: 20px; left: 50%;
+            transform: translateX(-50%); transition: left 0.5s linear, opacity 0.5s;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        #pet-img { width: 250px; height: auto; image-rendering: pixelated; }
+
+        #bubble {
+            position: absolute; bottom: 105%; background: white; 
+            border: 3px solid var(--border-color); border-radius: 12px;
+            padding: 8px 16px; font-size: 14px; display: none; z-index: 10;
+            white-space: nowrap; box-shadow: 3px 3px 0 rgba(0,0,0,0.1);
+        }
+        #bubble::after {
+            content: ''; position: absolute; bottom: -10px; left: 50%;
+            transform: translateX(-50%); border-left: 8px solid transparent;
+            border-right: 8px solid transparent; border-top: 10px solid var(--border-color);
+        }
+
+        .controls { 
+            display: flex; 
+            justify-content: space-between; 
+            gap: 5px; 
+            margin-top: 15px; 
+        }
+        .icon-btn {
+            flex: 1;
+            height: 50px;
+            background: #fff; border: 3px solid var(--border-color);
+            cursor: pointer; font-size: 22px;
+            display: flex; justify-content: center; align-items: center;
+            box-shadow: 2px 2px 0 var(--border-color); transition: 0.1s;
+            border-radius: 10px;
+            position: relative;
+        }
+        .icon-btn:active:not(:disabled) { box-shadow: 0 0 0; transform: translate(2px, 2px); }
+        
+        .album-btn { background: #ffe082; }
+        .gashapon-btn { background: #ff7675; }
+        .work-btn { background: #a29bfe; }
+        .lock-style { filter: grayscale(1); opacity: 0.7; }
+
+        .log {
+            margin-top: 10px; height: 80px; background: #eee;
+            border: 2px solid var(--border-color); font-size: 12px;
+            padding: 8px; overflow-y: auto; line-height: 1.5;
+        }
+
+        .overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); display: none;
+            justify-content: center; align-items: center; z-index: 100;
+        }
+
+        #work-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85); display: none; z-index: 200;
+            justify-content: center; align-items: center;
+        }
+        .work-window {
+            width: 90%; height: 85%; background: white; 
+            border: 5px solid var(--border-color); display: flex; flex-direction: column;
+        }
+        .work-header {
+            background: var(--border-color); color: white; padding: 5px 10px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        #work-iframe { width: 100%; flex-grow: 1; border: none; background: #eee; }
+
+        .gashapon-machine { width: 280px; display: flex; flex-direction: column; align-items: center; }
+        .gashapon-globe { width: 200px; height: 200px; background: rgba(255, 255, 255, 0.2); border: 6px solid #fff; border-radius: 50%; position: relative; overflow: hidden; box-shadow: inset 0 -10px 20px rgba(0,0,0,0.2); }
+        .ball-container { position: absolute; width: 100%; height: 100%; top: 0; left: 0; }
+        .ball { width: 26px; height: 26px; border-radius: 50%; position: absolute; border: 1px solid rgba(0,0,0,0.1); box-shadow: inset -2px -2px 4px rgba(0,0,0,0.15); }
+        .gashapon-base { width: 140px; height: 80px; background: #ff4757; margin-top: -15px; border: 5px solid var(--border-color); border-radius: 0 0 20px 20px; display: flex; flex-direction: column; align-items: center; z-index: 1; }
+        #out-ball { width: 28px; height: 28px; border-radius: 50%; display: none; animation: dropBall 0.5s ease-out forwards; }
+        @keyframes dropBall { 0% { transform: scale(0) translateY(-20px); } 100% { transform: scale(1) translateY(0); } }
+        .shaking .ball { animation: gravityShake 0.1s infinite; }
+        @keyframes gravityShake { 0%, 100% { transform: translate(0,0); } 50% { transform: translate(3px, -4px); } }
+        .album-window { width: 85%; height: 70%; background: var(--panel-color); border: 5px solid var(--border-color); padding: 15px; display: flex; flex-direction: column; }
+        .photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; overflow-y: auto; flex-grow: 1; margin-bottom: 10px; }
+        .photo-item { width: 100%; aspect-ratio: 1; object-fit: cover; border: 2px solid var(--border-color); }
+        #name-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 101; }
+        
+        /* 玩耍游戏选择弹窗样式 */
+        .play-window { width: 80%; background: var(--panel-color); border: 5px solid var(--border-color); padding: 15px; text-align: center; border-radius: 8px; }
+        .game-menu { display: flex; justify-content: space-around; gap: 10px; margin: 20px 0; }
+        .game-item-btn { flex: 1; height: 70px; background: #fff; border: 3px solid var(--border-color); border-radius: 8px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; box-shadow: 2px 2px 0 var(--border-color); font-weight: bold; font-size: 13px; }
+        .game-item-btn:active { box-shadow: 0 0 0; transform: translate(2px, 2px); }
+        .game-item-btn .game-icon { font-size: 24px; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="name-overlay">
+        <div style="background:var(--panel-color); padding:25px; border:4px solid var(--border-color); text-align:center;">
+            <h3 style="margin-top:0">给宣萱起个小名吧</h3>
+            <input type="text" id="name-input" placeholder="输入名字..." style="padding:10px; margin-bottom:15px; border:2px solid var(--border-color);">
+            <br><button onclick="startGame()" style="width:100px">进入</button>
+        </div>
+    </div>
+
+    <div id="work-overlay">
+        <div class="work-window">
+            <div class="work-header">
+                <span id="work-title">🎬 剧组拍摄中...</span>
+                <button onclick="handleTopRightClose()" style="background:#ff7675; color:white; border:none; padding:2px 10px; cursor:pointer;">退出</button>
+            </div>
+            <iframe id="work-iframe" src=""></iframe>
+        </div>
+    </div>
+
+    <div id="gashapon-overlay" class="overlay">
+        <div class="gashapon-machine">
+            <div class="gashapon-globe" id="gas-globe">
+                <div class="ball-container" id="ball-container"></div>
+            </div>
+            <div class="gashapon-base">
+                <div style="width:45px; height:45px; background:#2f3542; border:3px solid var(--border-color); border-radius:50%; margin-top:10px; display:flex; justify-content:center; align-items:center;">
+                    <div id="out-ball"></div>
+                </div>
+            </div>
+            <div style="margin-top:10px; text-align:center;">
+                <div id="gas-result" style="color:white; font-weight:bold; min-height: 20px;">50$ 抽一次</div>
+                <button onclick="drawGashapon()" id="draw-btn" style="margin-top:10px; background:#feca57; width:120px;">扭一下！</button>
+                <button onclick="closeGashapon()" style="margin-top:5px; width:120px; font-size:10px;">返回</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="preview-overlay" class="overlay">
+        <div style="width:75%; background:white; border:5px solid var(--border-color); padding:10px; text-align:center; border-radius:8px;">
+            <h4 style="margin:5px 0">📸 刚刚拍好的！</h4>
+            <img id="preview-img" src="" style="width:100%; border:2px solid #333; margin-bottom:10px;">
+            <button onclick="confirmPhoto()" style="width: 100%; background: #ffcc80;">存入影集</button>
+        </div>
+    </div>
+
+    <div id="album-overlay" class="overlay">
+        <div class="album-window">
+            <h4 style="margin-top:0; border-bottom:2px solid #5d4037;">伙伴影集</h4>
+            <div class="photo-grid" id="photo-grid"></div>
+            <button onclick="closeAlbum()">关闭</button>
+        </div>
+    </div>
+
+    <div id="play-overlay" class="overlay">
+        <div class="play-window">
+            <h4 style="margin-top:0; border-bottom:2px solid #5d4037; padding-bottom:5px;">🧸 陪它玩点什么？</h4>
+            <div class="game-menu">
+                <button class="game-item-btn" onclick="startCardGame()">
+                    <span class="game-icon">🃏</span>
+                    <span>抽卡游戏</span>
+                </button>
+                <button class="game-item-btn" onclick="startLinkGame()">
+                    <span class="game-icon">🧩</span>
+                    <span>连连看</span>
+                </button>
+                <button class="game-item-btn" onclick="startRPSGame()">
+                    <span class="game-icon">✊</span>
+                    <span>猜拳游戏</span>
+                </button>
+            </div>
+            <button onclick="closePlayMenu()" style="width: 100px;">返回</button>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div>伙伴: <span id="ui-name">-</span></div>
+        <div>状态: <span id="ui-state">准备就绪</span></div>
+        <div>体力: <span id="ui-hp">100</span></div>
+        <div>心情: <span id="ui-happy">100</span></div>
+        <div style="color:var(--accent-color); grid-column: span 2;">💰 钱包余额: <span id="ui-money">100</span></div>
+    </div>
+
+    <div id="stage">
+        <div id="pet-anchor">
+            <div id="bubble"></div>
+            <img id="pet-img" src="assets/stand_l.png">
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="icon-btn" onclick="handleAction('feed')" title="投喂蛋糕 (15$)">🍰</button>
+        <button class="icon-btn" onclick="handleAction('sleep')" title="命令补觉">💤</button>
+        <button class="icon-btn" onclick="handleAction('play')" title="陪它玩耍">🧸</button>
+        <button id="selfie-btn" class="icon-btn lock-style" onclick="handleAction('selfie')" title="未解锁自拍 (500$解锁)">🔒</button>
+        <button class="icon-btn work-btn" onclick="openWorkWindow()" title="🎬 拍戏打工">🎭</button>
+        <button class="icon-btn album-btn" onclick="toggleAlbum()" title="查看影集">🖼️</button>
+        <button class="icon-btn gashapon-btn" onclick="openGashapon()" title="去扭蛋">🎰</button>
+    </div>
+
+    <div class="log" id="game-log"></div>
+</div>
+
+<script>
+    const IMG_PATH = "assets/";
+    const SELFIE_POOL = ["s_1.jpg", "s_2.jpg", "s_3.jpg", "s_4.jpg","s_5.jpg", "s_6.jpg", "s_7.jpg", "s_8.jpg","s_9.jpg", "s_10.jpg", "s_11.jpg", "s_12.jpg","s_13.jpg", "s_14.jpg", "s_15.jpg", "s_16.jpg","s_17.jpg", "s_18.jpg","s_19.jpg", "s_20.jpg","s_21.jpg", "s_22.jpg", "s_23.jpg", "s_24.jpg","s_25.jpg", "s_26.jpg", "s_27.jpg","s_28.jpg"];
+    const BALL_COLORS = ['#93A957', '#F7EDB5', '#BABE5F', '#E6EFA3', '#F8F1E1', '#B2CA48', '#A4C674'];
+
+    const pet = {
+        name: "", hp: 100, happy: 100, money: 100,
+        state: 'idle', posX: 50,
+        isAnimating: false, isAway: false,
+        tempPhoto: null, album: [],
+        lastSelfieTime: 0, selfieSpamCount: 0,
+        isSelfieUnlocked: false 
+    };
+
+    const anims = {
+        blink: ["stand_l.png", "blink_1.png", "blink_2.png",  "stand_l.png"],
+        feed: { loop: ["eat_1.png", "stand_l.png", "eat_2.png"] },
+        sleep: { pre: ["stand_l.png"], loop: ["sleep_1.png", "sleep_2.png","sleep_3.png"], post: ["stand_l.png"] },
+        scared: ["scared_1.png", "dazed.png", "stand_l.png"],
+        funny: ["stand_l.png",  "blink_1.png", "stand_l.png"],
+        walk_left: ["walk_l1.png", "stand_l.png"],
+        walk_right: ["walk_r1.png", "stand_l.png"]
+    };
+
+    function startGame() {
+        pet.name = document.getElementById('name-input').value || "小猪";
+        document.getElementById('ui-name').innerText = pet.name;
+        document.getElementById('name-overlay').style.display = 'none';
+        initGashaponBalls();
+        updateUI();
+        autoBlink();
+        startSystem();
+        startPetAI();
+    }
+
+    function updateUI() {
+        document.getElementById('ui-hp').innerText = pet.hp;
+        document.getElementById('ui-happy').innerText = pet.happy;
+        document.getElementById('ui-money').innerText = pet.money;
+        document.getElementById('ui-state').innerText = pet.isAway ? "离家出走中" : getStateLabel();
+        document.getElementById('pet-anchor').style.left = pet.posX + '%';
+        if (pet.money < 30 && !pet.isAway) triggerRunaway();
+
+        const sBtn = document.getElementById('selfie-btn');
+        if (pet.isSelfieUnlocked) {
+            sBtn.innerText = "📸";
+            sBtn.classList.remove('lock-style');
+            sBtn.title = "讨要自拍";
+        }
+    }
+
+    function getStateLabel() {
+        const m = {idle:'发呆中', feed:'干饭', sleep:'补觉', selfie:'营业中', funny:'搞怪中', scavenge:'捡破烂', work: '拍戏中', play: '玩耍中'};
+        return m[pet.state] || '探索中';
+    }
+
+    function addLog(msg) {
+        const log = document.getElementById('game-log');
+        log.innerHTML = `<div style="margin-bottom:4px">• ${msg}</div>` + log.innerHTML;
+    }
+
+    function say(text) {
+        const b = document.getElementById('bubble');
+        b.innerText = text; b.style.display = 'block';
+        setTimeout(() => b.style.display = 'none', 2500);
+    }
+
+    async function playSequence(frames, speed = 250) {
+        const img = document.getElementById('pet-img');
+        for (let f of frames) {
+            if(pet.isAway) break;
+            img.src = IMG_PATH + f;
+            await new Promise(r => setTimeout(r, speed));
+        }
+    }
+
+    // --- 拍戏打工接口 ---
+    function openWorkWindow() {
+        if (pet.isAway || pet.isAnimating) return;
+        pet.isAnimating = true;
+        pet.state = 'work';
+        updateUI();
+        document.getElementById('work-title').innerText = "🎬 剧组拍摄中...";
+        document.getElementById('work-iframe').src = 'work.html'; 
+        document.getElementById('work-overlay').style.display = 'flex';
+        addLog(`${pet.name} 进组拍戏了...`);
+    }
+
+    // 处理窗口右上角通用的红退出按钮
+    function handleTopRightClose() {
+        if (pet.state === 'work') {
+            closeWork(true);
+        } else if (pet.state === 'play') {
+            closeGameEarly();
+        }
+    }
+
+    window.addEventListener('message', function(e) {
+        if (e.data === 'workFinished') {
+            closeWork(false); 
+        } else if (e.data === 'closePopupOnly') {
+            closeWork(true);
+        }
+        // 👇 正确处理从小游戏页面传回来的单独结算数据
+        else if (e.data && e.data.type === 'gameFinished') {
+            closeGameSuccess(e.data.money, e.data.happy);
+        }
+    });
+
+    function closeWork(isManual) {
+        document.getElementById('work-overlay').style.display = 'none';
+        document.getElementById('work-iframe').src = '';
+        pet.isAnimating = false;
+        pet.state = 'idle';
+        if (isManual) {
+            addLog(`${pet.name} 觉得剧本不合适，没拍就溜了。`);
+            say("太辛苦了，不拍啦！");
+        } else {
+            const pay = Math.floor(Math.random() * 41) + 10;
+            pet.money += pay;
+            addLog(`${pet.name} 拍戏结束！获得片酬 $${pay}。`);
+            say(`收工啦！赚了 ${pay}$！`);
+        }
+        updateUI();
+    }
+
+    // 👇 新增：小游戏正常返回结算
+    function closeGameSuccess(money, happy) {
+        document.getElementById('work-overlay').style.display = 'none';
+        document.getElementById('work-iframe').src = '';
+        
+        pet.money += money;
+        pet.happy = Math.min(100, pet.happy + happy);
+        
+        pet.isAnimating = false;
+        pet.state = 'idle';
+        
+        addLog(`${pet.name} 玩耍结束！心情增加 +${happy}，赢得了奖励 $${money}。`);
+        say("这个游戏太赞了，好好玩！");
+        updateUI();
+    }
+
+    // 👇 新增：玩小游戏时强行点右上角退出
+    function closeGameEarly() {
+        document.getElementById('work-overlay').style.display = 'none';
+        document.getElementById('work-iframe').src = '';
+        pet.isAnimating = false;
+        pet.state = 'idle';
+        addLog(`中途退出了游戏，${pet.name} 还没玩够呢。`);
+        say("啊？怎么不玩了呀...");
+        updateUI();
+    }
+
+    // --- 扭蛋逻辑 ---
+    function initGashaponBalls() {
+        const container = document.getElementById('ball-container');
+        container.innerHTML = '';
+        for(let i=0; i<35; i++) {
+            const b = document.createElement('div');
+            b.className = 'ball';
+            b.style.backgroundColor = BALL_COLORS[Math.floor(Math.random()*BALL_COLORS.length)];
+            const angle = Math.PI * (0.2 + Math.random() * 0.6); 
+            const dist = 45 + Math.random() * 45;
+            b.style.left = (100 + Math.cos(angle) * dist - 13) + 'px';
+            b.style.top = (100 + Math.sin(angle) * dist - 13) + 'px';
+            container.appendChild(b);
+        }
+    }
+
+    function openGashapon() { document.getElementById('gashapon-overlay').style.display = 'flex'; }
+    function closeGashapon() { document.getElementById('gashapon-overlay').style.display = 'none'; }
+
+    async function drawGashapon() {
+        if (pet.money < 50) { document.getElementById('gas-result').innerText = "钱不够了..."; return; }
+        pet.money -= 50; updateUI();
+        const btn = document.getElementById('draw-btn');
+        const globe = document.getElementById('gas-globe');
+        const outBall = document.getElementById('out-ball');
+        btn.disabled = true; outBall.style.display = 'none';
+        globe.classList.add('shaking');
+        await new Promise(r => setTimeout(r, 1200));
+        globe.classList.remove('shaking');
+        
+        const roll = Math.random();
+        let mult = 0; let prize = "";
+        if (roll < 0.05) { mult = 10; prize = "一等奖(x10)!"; }
+        else if (roll < 0.15) { mult = 5; prize = "二等奖(x5)!"; }
+        else if (roll < 0.65) { mult = 0.8; prize = "三等奖(x0.8)"; } 
+        else if (roll < 0.85) { mult = 0.5; prize = "四等奖(x0.5)"; }
+        else { mult = 0; prize = "五等奖(空头)"; }
+
+        const win = Math.floor(50 * mult);
+        pet.money += win;
+        outBall.style.backgroundColor = BALL_COLORS[Math.floor(Math.random()*BALL_COLORS.length)];
+        outBall.style.display = 'block';
+        document.getElementById('gas-result').innerText = `${prize} 获得 ${win}$`;
+        addLog(`抽中${prize}，余额 ${pet.money}$。`);
+        btn.disabled = false; updateUI();
+    }
+
+    async function triggerRunaway() {
+        if (pet.isAway) return;
+        closeGashapon(); 
+        pet.isAway = true; pet.isAnimating = true;
+        addLog(`${pet.name} 离家出走了！原因：没钱吃饭了。`);
+        say("我不跟着穷鬼混了！");
+        await playSequence(anims.scared, 200);
+        document.getElementById('pet-anchor').style.opacity = '0';
+        setTimeout(() => {
+            pet.money = 50; pet.isAway = false; pet.isAnimating = false;
+            document.getElementById('pet-anchor').style.opacity = '1';
+            addLog(`${pet.name} 出门当了一天麦当劳吉祥物，带回了救济金。`);
+            say("有钱吃饭啦。");
+            updateUI();
+        }, 10000);
+    }
+
+    async function triggerFunnyEvent() {
+        if (pet.isAway || pet.isAnimating) return;
+        pet.isAnimating = true; pet.state = 'funny'; updateUI();
+        
+        const events = [
+            { msg: `${pet.name} 试图跳舞，但差点摔倒。`, say: "哎呀！！", anim: anims.scared },
+            { msg: `${pet.name} 正在和影子深度交流。`, say: "哔哔...信号稳定。", anim: ["stand_l.png", "stand_r.png", "stand_l.png"] },
+            { msg: `${pet.name} 突然原地旋转了360度。`, say: "芜湖！", anim: ["stand_l.png", "stand_r.png", "stand_l.png", "stand_r.png"] },
+            { msg: `${pet.name} 假装自己是一颗安静的蘑菇。`, say: "看不见我...", anim: ["stand_l.png"] },
+            { msg: `${pet.name} 偷偷出门捡破烂赚了 $2`, say: "哇带回家还能用！", anim: ["blink_1.png", "stand_l.png"], earn: 2 },
+            { msg: `${pet.name} 偷偷出门倒贴赚了 $5 。`, say: "嘿嘿，发财了！", anim: ["eat_1.png", "stand_l.png"], earn: 5 },
+            { msg: `${pet.name} 帮邻居搬纸箱，获得了 $3 报酬。`, say: "劳动最光荣~", anim: ["walk_l1.png", "walk_r1.png", "stand_l.png"], earn: 3 },
+            { msg: `${pet.name} 盯着地上的蚂蚁看呆了。`, say: "它们在搬家吗？", anim: ["blink_1.png", "blink_2.png", "blink_1.png"] }
+        ];
+
+        const e = events[Math.floor(Math.random() * events.length)];
+        if (e.earn) { pet.money += e.earn; pet.state = 'scavenge'; }
+        addLog(e.msg); say(e.say);
+        await playSequence(e.anim || anims.blink, 300);
+        
+        pet.isAnimating = false; pet.state = 'idle'; updateUI();
+    }
+
+    function showPreview(photoSrc) {
+        pet.tempPhoto = photoSrc;
+        document.getElementById('preview-img').src = IMG_PATH + photoSrc;
+        document.getElementById('preview-overlay').style.display = 'flex';
+    }
+    function confirmPhoto() { if (pet.tempPhoto) pet.album.push(pet.tempPhoto); document.getElementById('preview-overlay').style.display = 'none'; }
+    function toggleAlbum() {
+        const grid = document.getElementById('photo-grid');
+        grid.innerHTML = pet.album.length === 0 ? '<div style="grid-column:span 2; text-align:center; padding:20px;">空空如也</div>' :
+            pet.album.slice().reverse().map(img => `<img src="${IMG_PATH}${img}" class="photo-item">`).join('');
+        document.getElementById('album-overlay').style.display = 'flex';
+    }
+    function closeAlbum() { document.getElementById('album-overlay').style.display = 'none'; }
+
+    // --- 玩耍游戏弹窗控制 ---
+    function closePlayMenu() {
+        document.getElementById('play-overlay').style.display = 'none';
+    }
+
+    // 唤起 iframe 载入对应的小游戏中心
+    function openGameIframe(type) {
+        if (pet.isAway || pet.isAnimating) return;
+        pet.isAnimating = true;
+        pet.state = 'play'; 
+        updateUI();
+
+        // 载入小游戏合集
+        document.getElementById('work-title').innerText = "🎮 正在陪它玩耍中...";
+        document.getElementById('work-iframe').src = `game.html?game=${type}`; 
+        document.getElementById('work-overlay').style.display = 'flex';
+        
+        closePlayMenu();
+    }
+
+    function startCardGame() {
+        addLog(`开启了抽卡游戏...`);
+        openGameIframe('card');
+    }
+
+    function startLinkGame() {
+        addLog(`开启了连连看游戏...`);
+        openGameIframe('link');
+    }
+
+    function startRPSGame() {
+        addLog(`开启了猜拳游戏...`);
+        openGameIframe('rps');
+    }
+
+    async function handleAction(action, isAI = false) {
+        if ((pet.isAnimating && !isAI) || pet.isAway) return;
+        
+        if (action === 'selfie') {
+            if (!pet.isSelfieUnlocked) {
+                if (confirm("自拍功能尚未开启！是否花费 500$ 购买“拍立得相机”解锁？")) {
+                    if (pet.money >= 500) {
+                        pet.money -= 500;
+                        pet.isSelfieUnlocked = true;
+                        addLog(`成功解锁自拍功能！花费了 500$。`);
+                        say("哇！我有相机啦！");
+                        updateUI();
+                    } else {
+                        say("钱不够买相机呢...");
+                    }
+                }
+                return;
+            }
+
+            const now = Date.now();
+            if (now - pet.lastSelfieTime < 10000) {
+                if (++pet.selfieSpamCount >= 2) {
+                    pet.isAnimating = true; addLog(`${pet.name} 觉得你太烦了，拒绝拍照！`); say("拍太多了啦！"); pet.happy = Math.max(0, pet.happy - 10);
+                    await playSequence(anims.scared, 200); pet.isAnimating = false; pet.state = 'idle';
+                } else { say("歇一会再拍嘛..."); }
+                updateUI(); return;
+            }
+            pet.isAnimating = true; pet.state = 'selfie'; pet.selfieSpamCount = 0; pet.lastSelfieTime = now; updateUI();
+            addLog(`${pet.name} 摆好了姿势...`); say("找找角度..."); await playSequence(anims.funny, 400);
+            const photo = SELFIE_POOL[Math.floor(Math.random() * SELFIE_POOL.length)];
+            say("茄子！📸"); setTimeout(() => { showPreview(photo); pet.isAnimating = false; pet.state = 'idle'; pet.happy = Math.min(100, pet.happy + 10); updateUI(); }, 800);
+            return;
+        }
+
+        switch(action) {
+            case 'walk_left': pet.isAnimating = true; pet.state = action; updateUI(); for(let i=0; i<3; i++) { if (pet.posX <= 15) break; pet.posX -= 8; updateUI(); await playSequence(anims.walk_left, 180); } pet.isAnimating = false; pet.state = 'idle'; updateUI(); break;
+            case 'walk_right': pet.isAnimating = true; pet.state = action; updateUI(); for(let i=0; i<3; i++) { if (pet.posX >= 85) break; pet.posX += 8; updateUI(); await playSequence(anims.walk_right, 180); } pet.isAnimating = false; pet.state = 'idle'; updateUI(); break;
+            case 'feed': pet.isAnimating = true; pet.state = action; updateUI(); if (pet.money < 15) { say("钱不够买蛋糕..."); } else { pet.money -= 15; addLog(`投喂了蛋糕。`); say("好吃！"); await playSequence([...anims.feed.loop, ...anims.feed.loop]); pet.hp = Math.min(100, pet.hp + 20); } pet.isAnimating = false; pet.state = 'idle'; updateUI(); break;
+            case 'sleep': pet.isAnimating = true; pet.state = action; updateUI(); addLog(`${pet.name} 进入了梦乡。`); await playSequence(anims.sleep.pre); for(let i=0; i<2; i++) await playSequence(anims.sleep.loop, 600); await playSequence(anims.sleep.post); pet.hp = Math.min(100, pet.hp + 30); pet.isAnimating = false; pet.state = 'idle'; updateUI(); break;
+            case 'idle': pet.isAnimating = true; pet.state = action; updateUI(); pet.posX = 50; addLog(`${pet.name} 乖乖回到了中间。`); pet.isAnimating = false; pet.state = 'idle'; updateUI(); break;
+            case 'play': 
+                document.getElementById('play-overlay').style.display = 'flex';
+                break;
+        }
+    }
+
+    async function startPetAI() {
+        while(true) {
+            await new Promise(r => setTimeout(r, 8000));
+            if (!pet.isAway && !pet.isAnimating) {
+                const roll = Math.random();
+                if (roll < 0.35) await triggerFunnyEvent();
+                else if (roll < 0.65) { pet.posX = Math.max(15, Math.min(85, pet.posX + (Math.random() > 0.5 ? 20 : -20))); updateUI(); }
+            }
+        }
+    }
+
+    async function autoBlink() {
+        while(true) {
+            await new Promise(r => setTimeout(r, 4000));
+            if (!pet.isAnimating && !pet.isAway) await playSequence(anims.blink, 150);
+        }
+    }
+
+    function startSystem() {
+        setInterval(() => { if(!pet.isAway) { pet.hp = Math.max(0, pet.hp - 1); pet.happy = Math.max(0, pet.happy - 1); updateUI(); } }, 5000);
+    }
+</script>
+</body>
+</html>

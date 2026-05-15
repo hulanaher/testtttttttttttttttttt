@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>小游戏中心</title>
+    <style>
+        :root {
+            --bg-color: #f8d088;
+            --panel-color: #fffbe6;
+            --border-color: #5d4037;
+            --accent-color: #d35400;
+        }
+        body {
+            margin: 0; padding: 10px;
+            background-color: var(--panel-color);
+            font-family: "Courier New", "Microsoft YaHei", monospace;
+            color: var(--border-color);
+            user-select: none;
+        }
+        button {
+            background: #fff; border: 3px solid var(--border-color);
+            border-radius: 8px; cursor: pointer; font-weight: bold;
+            box-shadow: 2px 2px 0 var(--border-color); padding: 6px 12px;
+        }
+        button:active { box-shadow: 0 0 0; transform: translate(2px, 2px); }
+        button:disabled { filter: grayscale(1); opacity: 0.6; cursor: not-allowed; }
+
+        .game-scene { display: none; height: 100vh; flex-direction: column; align-items: center; justify-content: flex-start; box-sizing: border-box; }
+        .active { display: flex; }
+        .game-header { text-align: center; margin-bottom: 10px; width: 100%; position: relative; }
+        
+        /* 抽卡游戏样式 */
+        .gacha-container { display: flex; gap: 15px; width: 100%; max-width: 440px; height: 260px; }
+        .stage-section { flex: 1.2; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .card-wrapper { width: 140px; height: 190px; position: relative; }
+        #mainImg { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; border: 3px solid var(--border-color); box-shadow: 3px 3px 0 rgba(0,0,0,0.1); }
+        
+        /* 对话气泡样式 */
+        .comment-bubble {
+            margin-top: 15px;
+            background: white;
+            border: 3px solid var(--border-color);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 13px;
+            position: relative;
+            width: 80%;
+            min-height: 20px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-weight: bold;
+        }
+        .comment-bubble::after {
+            content: ''; position: absolute; top: -12px; left: 50%;
+            transform: translateX(-50%); border-left: 8px solid transparent;
+            border-right: 8px solid transparent; border-bottom: 10px solid var(--border-color);
+        }
+
+        .draw-animation { animation: cosmicBurst 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        @keyframes cosmicBurst {
+            0% { transform: scale(1); filter: brightness(1); }
+            40% { transform: scale(0.9) rotate(-5deg); filter: brightness(0.6); }
+            70% { transform: scale(1.05); filter: brightness(1.3); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+        
+        .history-section { flex: 1; background: #eee; border: 3px solid var(--border-color); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; }
+        .history-list { flex-grow: 1; overflow-y: auto; font-size: 11px; }
+        .history-item { display: flex; align-items: center; background: #fff; margin-bottom: 5px; padding: 4px; border: 1px solid var(--border-color); border-radius: 4px; }
+        .rarity-tag { font-size: 9px; padding: 1px 3px; border-radius: 3px; color: white; background: var(--accent-color); font-weight: normal; margin-left: 4px; }
+
+        /* 连连看样式 */
+        #link-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; background: #aed581; padding: 8px; border: 3px solid var(--border-color); border-radius: 8px; width: calc(100% - 20px); max-width: 420px; box-sizing: border-box; }
+        .link-cell { aspect-ratio: 1; background: #fff; border: 2px solid var(--border-color); border-radius: 4px; display: flex; justify-content: center; align-items: center; font-size: 20px; cursor: pointer; box-shadow: 1px 1px 0 var(--border-color); transition: 0.1s; }
+        .link-cell.selected { background: #ffe082; transform: scale(0.95); border-color: #e67e22; }
+        .link-cell.empty { visibility: hidden; pointer-events: none; }
+
+        .settle-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 999; }
+        .settle-box { background: var(--panel-color); border: 5px solid var(--border-color); border-radius: 12px; padding: 20px; text-align: center; width: 70%; max-width: 300px; }
+    </style>
+</head>
+<body>
+
+<div id="settle-overlay" class="settle-overlay">
+    <div class="settle-box">
+        <h3 id="settle-title" style="margin-top:0;">🎉 游戏结束</h3>
+        <p id="settle-desc">陪它玩得很开心！</p>
+        <div style="font-weight:bold; color:var(--accent-color); margin-bottom:15px;" id="settle-rewards">💰+0  ❤️+0</div>
+        <button onclick="quitGame()">收工返回</button>
+    </div>
+</div>
+
+<div id="scene-card" class="game-scene">
+    <div class="game-header">
+        <h3 style="margin: 5px 0;">🃏 宣萱盲袋抽卡</h3>
+        <span style="font-size:11px; opacity:0.7;">每张卡片都固定奖励 $10 哦！</span>
+    </div>
+    <div class="gacha-container">
+        <div class="stage-section">
+            <div class="card-wrapper">
+                <img src="assets/A.jpg" alt="盲袋" id="mainImg">
+            </div>
+            <div id="commentBubble" class="comment-bubble">评价载入中...</div>
+            <button id="drawBtn" onclick="executeDraw()" style="margin-top:12px; width:130px; background:#ffcb80;">拆解盲袋</button>
+        </div>
+        <div class="history-section">
+            <div style="font-size:11px; font-weight:bold; margin-bottom:5px; display:flex; justify-content:space-between;">
+                <span>抽取历史</span>
+                <a href="#" onclick="clearGachaDB()" style="color:#e74c3c; text-decoration:none; font-size:10px;">清空</a>
+            </div>
+            <div class="history-list" id="historyList"></div>
+        </div>
+    </div>
+    <p id="gacha-status" style="font-size:12px; margin: 8px 0; font-weight:bold; min-height:16px;"></p>
+    <button onclick="triggerSettle('抽卡体验', 15, earnedMoney)" style="margin-top:5px; font-size:12px;">结束抽卡</button>
+</div>
+
+<div id="scene-link" class="game-scene">
+    <div class="game-header">
+        <h3 style="margin: 5px 0;">🧩 像素连连看</h3>
+        <span style="font-size:11px; opacity:0.7;">配对所有图案！卡壳时可道具洗牌。</span>
+    </div>
+    <div id="link-grid"></div>
+    <div style="margin-top:12px; display:flex; gap:10px; align-items:center;">
+        <button onclick="initLinkGame()" style="font-size:12px; background:#a29bfe;">重开一局</button>
+        <button onclick="shuffleRemainingCells()" style="font-size:12px; background:#ffcb80;">道具洗牌 🔀</button>
+        <button onclick="triggerSettle('连连看结束', Math.floor((40 - totalLeftCells) * 0.5) * 2, Math.floor((40 - totalLeftCells) * 0.5))" style="font-size:12px;">结算退出</button>
+    </div>
+</div>
+
+<script>
+    // ================= 全局配置与基础变量 =================
+    const GACHA_CONFIG = {
+        cards: [
+            { name: "宣萱单人小卡", rarity: "SSR", comment: "哎呀我真好看、", src: "assets/1.jpg" },
+            { name: "三人大合照", rarity: "SR", comment: "嘿嘿薯条真好吃。", src: "assets/2.jpg" },
+            { name: "古装限定卡", rarity: "SR", comment: "呵呵哈哈哈呵呵哈哈。", src: "assets/3.jpg" },
+            { name: "夏日沙滩卡", rarity: "R", comment: "怎么我看起来怪怪的。", src: "assets/4.jpg" },
+            { name: "老头单人卡片", rarity: "N", comment: "啊啊啊啊我咋这么倒霉！", src: "assets/5.jpg" }
+        ]
+    };
+
+    let gachaHistory = [];
+    try { gachaHistory = JSON.parse(localStorage.getItem('mini_gacha_db')) || []; } catch(e){}
+
+    let earnedMoney = 0;
+    let earnedHappy = 0;
+
+    const LINK_EMOJIS = ['🍎', '🍌', '🍇', '🍉', '🍓', '🥕', '🌽', '🍄'];
+    let linkMatrix = []; 
+    let firstSelected = null;
+    let totalLeftCells = 40;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const gameType = urlParams.get('game') || 'card';
+
+    document.querySelectorAll('.game-scene').forEach(s => s.classList.remove('active'));
+    if(gameType === 'card') { document.getElementById('scene-card').classList.add('active'); initGachaGame(); }
+    if(gameType === 'link') { document.getElementById('scene-link').classList.add('active'); initLinkGame(); }
+
+    function triggerSettle(title, happy, money) {
+        earnedHappy = happy; earnedMoney = money;
+        document.getElementById('settle-title').innerText = "🎉 " + title + "结束";
+        document.getElementById('settle-rewards').innerText = `💰 +${money}   ❤️ +${happy}`;
+        document.getElementById('settle-overlay').style.display = 'flex';
+    }
+
+    function quitGame() {
+        window.parent.postMessage({ type: 'gameFinished', money: earnedMoney, happy: earnedHappy }, '*');
+    }
+
+    // ================= 1. 抽卡系统逻辑 (新增气泡与固定奖励) =================
+    function initGachaGame() { updateGachaUI(); }
+    
+    function executeDraw() {
+        const btn = document.getElementById('drawBtn');
+        const img = document.getElementById('mainImg');
+        const status = document.getElementById('gacha-status');
+        const bubble = document.getElementById('commentBubble');
+
+        btn.disabled = true; 
+        status.innerText = "正在拆解盲袋...";
+        bubble.style.opacity = "0"; // 抽卡时先隐藏旧气泡
+
+        img.classList.remove('draw-animation'); 
+        void img.offsetWidth; 
+        img.classList.add('draw-animation');
+
+        try {
+            const result = GACHA_CONFIG.cards[Math.floor(Math.random() * GACHA_CONFIG.cards.length)];
+            const entry = { name: result.name, rarity: result.rarity, timestamp: new Date().toLocaleTimeString() };
+            
+            setTimeout(() => {
+                try {
+                    img.src = result.src;
+                    img.onerror = function() {
+                        this.onerror = null; 
+                        this.src = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='190'><rect width='100%' height='100%' fill='%23dfe6e9' stroke='%235d4037' stroke-width='6'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='14' font-weight='bold' fill='%235d4037'>${encodeURIComponent(result.name)}</text></svg>`;
+                    };
+
+                    // 1. 显示角色评价气泡
+                    bubble.innerText = result.comment;
+                    bubble.style.opacity = "1";
+
+                    // 2. 将评价同步到父页面的主气泡 (让角色在主屏也说话)
+                    window.parent.postMessage({ type: 'petSay', text: result.comment }, '*');
+
+                    gachaHistory.unshift(entry);
+                    if (gachaHistory.length > 10) gachaHistory.pop();
+                    try { localStorage.setItem('mini_gacha_db', JSON.stringify(gachaHistory)); } catch(e){}
+                    updateGachaUI();
+
+                    // 3. 固定奖励 10 元
+                    earnedMoney += 10; 
+
+                } catch (e) {}
+            }, 500);
+
+            setTimeout(() => {
+                btn.disabled = false; btn.innerText = "再抽一袋";
+                status.innerText = `抽中: [${result.rarity}] ${result.name} (奖励 $10)`;
+            }, 800);
+        } catch (err) {
+            btn.disabled = false; btn.innerText = "重试";
+        }
+    }
+
+    function updateGachaUI() {
+        const list = document.getElementById('historyList'); if (!list) return;
+        list.innerHTML = gachaHistory.map(item => `
+            <div class="history-item">
+                <div style="font-weight:bold; flex-grow:1;">${item.name} <span class="rarity-tag">${item.rarity}</span></div>
+                <div style="font-size:9px; opacity:0.5;">${item.timestamp}</div>
+            </div>
+        `).join('');
+    }
+    function clearGachaDB() { gachaHistory = []; try{localStorage.removeItem('mini_gacha_db');}catch(e){} updateGachaUI(); }
+
+    // ================= 2. 连连看逻辑 (保持防死局版本) =================
+    function initLinkGame() {
+        firstSelected = null; totalLeftCells = 40;
+        let pool = [];
+        for(let i = 0; i < 7; i++) { pool.push(LINK_EMOJIS[i], LINK_EMOJIS[i], LINK_EMOJIS[i], LINK_EMOJIS[i]); }
+        for(let i = 0; i < 6; i++) { pool.push(LINK_EMOJIS[7], LINK_EMOJIS[7]); }
+
+        let attempts = 0;
+        while (attempts < 100) {
+            pool.sort(() => Math.random() - 0.5);
+            linkMatrix = [];
+            for(let i = 0; i < 40; i++) {
+                linkMatrix.push({ id: i, r: Math.floor(i/8), c: i%8, emoji: pool[i], isDead: false });
+            }
+            if (hasValidMoves()) { break; } 
+            attempts++;
+        }
+        renderLinkGrid();
+    }
+
+    function renderLinkGrid() {
+        const grid = document.getElementById('link-grid'); if(!grid) return;
+        grid.innerHTML = '';
+        linkMatrix.forEach(cellData => {
+            let div = document.createElement('div');
+            if (cellData.isDead) { div.className = 'link-cell empty'; } 
+            else {
+                div.className = 'link-cell'; div.id = `cell-${cellData.id}`; div.innerText = cellData.emoji;
+                if (firstSelected && firstSelected.id === cellData.id) div.classList.add('selected');
+                div.onclick = () => onLinkCellClick(cellData);
+            }
+            grid.appendChild(div);
+        });
+    }
+
+    function shuffleRemainingCells() {
+        firstSelected = null;
+        let aliveCells = linkMatrix.filter(c => !c.isDead);
+        if (aliveCells.length <= 2) return;
+        let aliveEmojis = aliveCells.map(c => c.emoji);
+        let attempts = 0;
+        while(attempts < 50) {
+            aliveEmojis.sort(() => Math.random() - 0.5);
+            aliveCells.forEach((cell, index) => { cell.emoji = aliveEmojis[index]; });
+            if (hasValidMoves()) { break; }
+            attempts++;
+        }
+        renderLinkGrid();
+    }
+
+    function hasValidMoves() {
+        let alive = linkMatrix.filter(c => !c.isDead);
+        for (let i = 0; i < alive.length; i++) {
+            for (let j = i + 1; j < alive.length; j++) {
+                if (alive[i].emoji === alive[j].emoji && canEliminate(alive[i], alive[j])) return true;
+            }
+        }
+        return false;
+    }
+
+    function onLinkCellClick(cell) {
+        if(cell.isDead) return;
+        let cellEl = document.getElementById(`cell-${cell.id}`);
+        if (!firstSelected) { firstSelected = cell; cellEl.classList.add('selected'); } 
+        else {
+            let prevEl = document.getElementById(`cell-${firstSelected.id}`);
+            if (firstSelected.id === cell.id) { cellEl.classList.remove('selected'); firstSelected = null; return; }
+            if (firstSelected.emoji === cell.emoji && canEliminate(firstSelected, cell)) {
+                cell.isDead = true; firstSelected.isDead = true;
+                totalLeftCells -= 2; firstSelected = null;
+                renderLinkGrid();
+                if(totalLeftCells <= 0) setTimeout(() => triggerSettle('连连看通关！', 40, 50), 300);
+            } else {
+                if(prevEl) prevEl.classList.remove('selected');
+                firstSelected = cell; cellEl.classList.add('selected');
+            }
+        }
+    }
+
+    function isRowEmpty(r, c1, c2) {
+        let min = Math.min(c1, c2), max = Math.max(c1, c2);
+        for (let c = min + 1; c < max; c++) if (!linkMatrix[r * 8 + c].isDead) return false;
+        return true;
+    }
+
+    function isColEmpty(c, r1, r2) {
+        let min = Math.min(r1, r2), max = Math.max(r1, r2);
+        for (let r = min + 1; r < max; r++) if (!linkMatrix[r * 8 + c].isDead) return false;
+        return true;
+    }
+
+    function canEliminate(p1, p2) {
+        if (p1.r === p2.r && isRowEmpty(p1.r, p1.c, p2.c)) return true;
+        if (p1.c === p2.c && isColEmpty(p1.c, p1.r, p2.r)) return true;
+        let cornerA = linkMatrix[p1.r * 8 + p2.c];
+        if (cornerA.isDead && isRowEmpty(p1.r, p1.c, p2.c) && isColEmpty(p2.c, p1.r, p2.r)) return true;
+        let cornerB = linkMatrix[p2.r * 8 + p1.c];
+        if (cornerB.isDead && isColEmpty(p1.c, p1.r, p2.r) && isRowEmpty(p2.r, p1.c, p2.c)) return true;
+        for (let c = 0; c < 8; c++) {
+            let tmp1 = linkMatrix[p1.r * 8 + c]; let tmp2 = linkMatrix[p2.r * 8 + c];
+            if ((tmp1.isDead || c === p1.c) && (tmp2.isDead || c === p2.c)) {
+                if (isRowEmpty(p1.r, p1.c, c) && isColEmpty(c, p1.r, p2.r) && isRowEmpty(p2.r, c, p2.c)) return true;
+            }
+        }
+        for (let r = 0; r < 5; r++) {
+            let tmp1 = linkMatrix[r * 8 + p1.c]; let tmp2 = linkMatrix[r * 8 + p2.c];
+            if ((tmp1.isDead || r === p1.r) && (tmp2.isDead || r === p2.r)) {
+                if (isColEmpty(p1.c, p1.r, r) && isRowEmpty(r, p1.c, p2.c) && isColEmpty(p2.c, r, p2.r)) return true;
+            }
+        }
+        return false;
+    }
+</script>
+</body>
+</html>
