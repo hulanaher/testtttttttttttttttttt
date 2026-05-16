@@ -36,47 +36,61 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
-        /* 剧本及事件展示区 */
+        /* 剧本及互动舞台区 */
         #script-area {
-            flex: 1; border: 2px solid #5d4037; background: #fff; padding: 10px;
+            flex: 1; border: 2px solid #5d4037; background: #fff; padding: 12px;
             border-radius: 5px; font-size: 14px; line-height: 1.6;
             overflow-y: auto; display: none; margin-bottom: 10px;
         }
         .script-title { font-weight: bold; color: #d35400; font-size: 16px; margin-bottom: 5px; }
         
-        /* CP事件弹窗样式 */
-        .cp-box {
-            background: #fff0f5; border: 1px dashed #ff69b4; border-radius: 6px;
-            padding: 10px; margin-top: 10px; text-align: center;
+        /* 炒CP与互动事件动态卡片样式 */
+        .interactive-card {
+            background: #fff0f5; border: 2px dashed #ff69b4; border-radius: 6px;
+            padding: 12px; margin: 10px 0; animation: slideIn 0.3s ease-out;
         }
-        .cp-title { color: #c71585; font-weight: bold; font-size: 13px; margin-bottom: 5px;}
-        .cp-btns { display: flex; justify-content: center; gap: 10px; margin-top: 5px; }
-        .cp-btn { padding: 4px 12px; font-size: 12px; background: #fff; border: 1px solid #ff69b4; color: #ff69b4; border-radius: 4px; cursor: pointer;}
-        .cp-btn:hover { background: #ff69b4; color: #fff; }
-        .cp-btn.active { background: #ff1493; color: #fff; border-color: #ff1493; }
+        .event-card {
+            background: #f0f7ff; border: 2px dashed #3498db;
+        }
+        .card-title { font-weight: bold; font-size: 13px; margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
+        .cp-title { color: #c71585; }
+        .ev-title { color: #2980b9; }
 
-        /* 结算样式 */
+        .choice-btn-group { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+        .choice-opt-btn {
+            padding: 8px 12px; font-size: 12px; text-align: left; background: #fff;
+            border: 1px solid #ddd; border-radius: 4px; cursor: pointer; transition: all 0.1s;
+        }
+        .choice-opt-btn:hover { background: #f5f5f5; border-color: #999; }
+        .choice-opt-btn.active { background: #3498db; color: white; border-color: #3498db; }
+        .choice-opt-btn.cp-active { background: #ff1493; color: white; border-color: #ff1493; }
+
+        /* 历史事件回显日志 */
+        .history-item {
+            font-size: 12px; color: #666; background: #fafafa; 
+            padding: 4px 8px; border-left: 3px solid #ccc; margin: 5px 0;
+        }
+
+        /* 最终结算框 */
         .result-box {
-            text-align: center; padding: 10px; border-radius: 6px; margin-top: 10px;
-            font-weight: bold; font-size: 15px;
+            text-align: center; padding: 12px; border-radius: 6px; margin-top: 12px;
+            font-weight: bold; font-size: 14px; animation: popUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         .result-boom { background: #ffe6e6; color: #cc0000; border: 1px solid #cc0000; }
         .result-normal { background: #f0f0f0; color: #555555; border: 1px solid #555555; }
-        .result-burst { background: #e6ffe6; color: #008800; border: 1px solid #008800; animation: blink 1s infinite alternate; }
+        .result-burst { background: #e6ffe6; color: #008800; border: 1px solid #008800; }
         
-        @keyframes blink {
-            from { box-shadow: 0 0 2px #008800; }
-            to { box-shadow: 0 0 10px #00ff00; }
-        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popUp { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
         .btn-group { text-align: center; margin-top: auto; }
-        button {
+        button.action-btn {
             padding: 8px 20px; font-size: 14px; font-weight: bold;
             cursor: pointer; border: 2px solid #5d4037; border-radius: 4px;
             background: #f8d088; color: #5d4037; margin: 0 5px;
         }
-        button:hover { background: #fb8c00; color: white; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
+        button.action-btn:hover { background: #fb8c00; color: white; }
+        button.action-btn:disabled { background: #ccc; border-color: #aaa; color: #666; cursor: not-allowed; }
         
         .loading { color: #d35400; font-style: italic; text-align: center; margin-top: 20px; }
     </style>
@@ -100,10 +114,10 @@
     <div id="script-area"></div>
 
     <div class="btn-group">
-        <button id="rand-btn" onclick="refreshOptions()">换一批选项</button>
-        <button id="confirm-btn" onclick="confirmSelection()" style="display:none; background:#d35400; color:white;">构思剧本</button>
-        <button id="shoot-btn" onclick="startShoot()" style="display:none;">开机拍摄!</button>
-        <button id="finish-btn" onclick="finishAndReward()" style="display:none; background:#27ae60; color:white;">杀青领片酬!</button>
+        <button class="action-btn" id="rand-btn" onclick="refreshOptions()">换一批选项</button>
+        <button class="action-btn" id="confirm-btn" onclick="confirmSelection()" style="display:none; background:#d35400; color:white;">确认剧本</button>
+        <button class="action-btn" id="shoot-btn" onclick="startShootFlow()" style="display:none; background:#e67e22; color:white;">开机拍摄!</button>
+        <button class="action-btn" id="finish-btn" onclick="finishAndReward()" style="display:none; background:#27ae60; color:white;">杀青领奖!</button>
     </div>
 </div>
 
@@ -113,13 +127,180 @@
     const allRoles = ["凶凶职场女强人", "傲娇大小姐", "MI6特工", "医生", "心理医生", "女明星", "杀人犯", "单亲妈妈", "霸道总裁", "律师", "督察", "笨蛋警察", "冷脸杀手", "恋爱脑", "隐退大姐大", "苦逼打工人"];
     const allGenres = ["虐恋复仇片", "浪漫言情", "悬疑惊悚", "穿越片", "职场商战", "豪门争斗片", "恐怖片", "警匪片", "爆笑喜剧"];
 
+    // 🌟 全新设计：20个拥有分支双选项、带来不同属性变动的核心事件库
+    const choiceEventsPool = [
+        {
+            title: "🎬 剧组夜戏调整",
+            desc: "导演临时通知今晚要加拍大夜淋雨戏，但你感觉有些低烧...",
+            opts: [
+                { text: "【咬牙坚守】拒绝替身直接上场！", log: "你带病淋雨拍戏，敬业通稿看哭粉丝！", money: -10, fans: 35 },
+                { text: "【申请改戏】沟通能否改到室内拍摄。", log: "导演表示理解调整了排班，无功无过。", money: 0, fans: 0 }
+            ]
+        },
+        {
+            title: "🍟 应援咖啡车危机",
+            desc: "粉丝团凑钱买的应援下午茶送到了片场，但饮品名字不小心印错了你的黑称...",
+            opts: [
+                { text: "【大方解围】笑着请大家喝，并自黑开玩笑。", log: "情商拉满！引来全剧组盛赞，口碑出圈。", money: 5, fans: 25 },
+                { text: "【私下撤换】自掏腰包紧急订一批对的换掉。", log: "悄悄解决了危机，多花了一笔小钱。", money: -25, fans: 5 }
+            ]
+        },
+        {
+            title: "👗 抢高定礼服风波",
+            desc: "赞助商送来的拍摄期奢牌衣服被同剧组女二号抢先穿上占了...",
+            opts: [
+                { text: "【当场撕抢】叫经纪人出面，按合同按规矩拿回来。", log: "衣服抢回来了，但片场气氛一度极其尴尬。", money: 15, fans: -5 },
+                { text: "【随缘换装】穿上备用的国潮小众款，重新配饰。", log: "国风造型惊艳流出！意外被原著粉狂夸！", money: 0, fans: 40 }
+            ]
+        },
+        {
+            title: "🐈 神秘探班“嘉宾”",
+            desc: "一只野生流浪猫不知怎么钻进了你的专属化妆间，赖着不肯走...",
+            opts: [
+                { text: "【合影发博】把它抱在怀里拍一张九宫格自拍。", log: "微博瞬间转评赞破万，吸了一大波猫奴路人粉！", money: 0, fans: 30 },
+                { text: "【悉心投喂】找道具组要来火腿肠，喂饱后送给场务收养。", log: "给小家伙找了个好归宿，心情舒畅。", money: -5, fans: 10 }
+            ]
+        },
+        {
+            title: "🗣️ 对手演员“念数字”",
+            desc: "和你演深情对手戏的男主角频繁笑场，甚至在嘴里嘟囔“12345”对台词...",
+            opts: [
+                { text: "【严厉纠正】当面请他配合把台词念清楚，否则接不住戏。", log: "对方感到羞愧认真了起来，拍摄质量回升。", money: 10, fans: 0 },
+                { text: "【信念信念】装作听不见，自己用最饱满的情绪死磕接戏。", log: "你的信念感震撼全场，导演私下给你塞了辛苦红包。", money: 25, fans: 5 }
+            ]
+        },
+        {
+            title: "🎒 私生饭跟车",
+            desc: "收工回酒店的路上，保姆车被几辆私生饭的私家车疯狂超车围堵...",
+            opts: [
+                { text: "【直接报警】把车停在安全区，配合执法记录仪处理。", log: "工作室硬气维权，粉丝拍手称快！黑粉有些破防。", money: -10, fans: 25 },
+                { text: "【甩开他们】让老司机抄近路、绕小巷子加速甩开。", log: "惊险甩脱，但导致全车人惊魂未定，耽误了休息。", money: 0, fans: -10 }
+            ]
+        },
+        {
+            title: "👑 剧组预算短缺",
+            desc: "制片人愁眉苦脸地找来，说资方有一笔尾款卡住了，问演员能不能自愿延迟领一部分车马费...",
+            opts: [
+                { text: "【体谅资方】同意延期，并表示愿意同甘共苦。", log: "导演大受感动，杀青时给你追加了全剧分成点位！", money: 45, fans: 0 },
+                { text: "【按合同办】拒绝妥协，要求当天到账否则停拍。", log: "制片人只能到处借钱按时发了薪，但背后对你微词。", money: 10, fans: -5 }
+            ]
+        },
+        {
+            title: "🎥 突发加戏要求",
+            desc: "导演觉得今天的灵感爆棚，想为你当场加一段高难度的全英文高光独白...",
+            opts: [
+                { text: "【死磕背下】闭关一个小钟头，生生背下两页密密麻麻的词。", log: "拍摄一条过！全剧组起立为你鼓掌喝彩！", money: 20, fans: 20 },
+                { text: "【拒绝加戏】认为太仓促，容易弄巧成拙，婉拒了更改。", log: "稳妥保底，依然按照原定剧本平稳进行。", money: 0, fans: 0 }
+            ]
+        },
+        {
+            title: "💇 降智造型风波",
+            desc: "定妆时造型师给你弄了一个极度夸张、奇丑无比的“飞天发髻”...",
+            opts: [
+                { text: "【坚决抗议】要求化妆师连夜重新修改，不改不拍。", log: "由于你的坚持，最终换上了神仙绝美造型！", money: -15, fans: 35 },
+                { text: "【服从安排】硬着头皮顶着这个造型去拍。", log: "路透图传出后被全网嘲讽，喜提搞笑黑热搜。", money: 5, fans: -25 }
+            ]
+        },
+        {
+            title: "💥 威亚惊魂记",
+            desc: "在拍摄一场飞天打斗戏时，高空吊威亚的绳索突然发出了一声松动的异响！",
+            opts: [
+                { text: "【坚持拍完】忍住恐惧，强行做完最后一个空翻动作落地。", log: "镜头完美定格！导演直呼“神仙落泪”，吹爆敬业度！", money: 10, fans: 45 },
+                { text: "【立刻喊停】安全第一，手势示意赶紧把自己放下来检查。", log: "道具检查后发现确实磨损，惊险避灾，但多花时间更换。", money: -10, fans: 5 }
+            ]
+        },
+        {
+            title: "🌟 意外的代言邀约",
+            desc: "某国际知名彩妆高层悄悄来到片场探班，对你的片场状态很感兴趣...",
+            opts: [
+                { text: "【积极社交】主动过去打招呼，并赠送对方自己的亲笔签照。", log: "对方非常满意，私下口头许诺了一个品牌挚友名额！", money: 35, fans: 15 },
+                { text: "【保持距离】专注拍戏，不想显得功利，只点头示意。", log: "表现得很清高专业，高层夸赞你是一个纯粹的演员。", money: 5, fans: 10 }
+            ]
+        },
+        {
+            title: "🎙️ 直播意外切错号",
+            desc: "切错小号的你不小心把一段剧组吐槽、模仿导演说话的搞笑录音发出去了...",
+            opts: [
+                { text: "【真诚道歉】立刻发大号认领，承认是在开玩笑并艾特导演。", log: "导演也互动转发打趣，意外立住了搞笑女、真性情标签。", money: 0, fans: 25 },
+                { text: "【打死不认】光速删掉，推说是工作室实习生登错了号发错了。", log: "被网友群嘲没担当，甩锅行为略微掉粉。", money: -10, fans: -20 }
+            ]
+        },
+        {
+            title: "🎒 剧透泄露危机",
+            desc: "某代拍在网上偷偷曝光了你今天拍摄的核心高潮戏高悬念造型剧透图...",
+            opts: [
+                { text: "【工作室发函】严厉发严正声明斥责代拍，呼吁尊重剧组。", log: "维护了剧组核心利益，得到业内和粉丝的尊重支持。", money: 0, fans: 20 },
+                { text: "【将计就计】反手发一张更高清、打满马赛克的自拍去互动调侃。", log: "神级危机公关！网友全被你逗笑，热度反向飙升！", money: 10, fans: 30 }
+            ]
+        },
+        {
+            title: "🧁 资方塞进来的“皇族”",
+            desc: "制片人带了一位带资进组的新人，强行要挤掉你原本推荐的业内好友配角位置...",
+            opts: [
+                { text: "【据理力争】直接拿出合同条款，力保演技派好友留在剧组。", log: "保住了朋友，但得罪了资方，后期宣传位被故意边缘化。", money: -30, fans: 40 },
+                { text: "【顺水推舟】不再多管闲事，笑着欢迎带资进组的新人。", log: "资方看你很识相，在拍摄期间额外多批了一笔预算给你。", money: 40, fans: -10 }
+            ]
+        },
+        {
+            title: "🎒 同行剧组恶意拉踩",
+            desc: "隔壁对打的对家剧组买了大批水军和黑稿，在论坛疯狂攻击你的生图身材走样...",
+            opts: [
+                { text: "【甩腹肌照】直接发微博晒出当天在保姆车健身的腹肌/马甲线照片。", log: "黑子瞬间闭嘴！身材管理迅速登上热搜第一！", money: 10, fans: 35 },
+                { text: "【冷处理】清者自清，不给黑子送眼神和眼神热度。", log: "粉丝辛勤洗广场，局势勉强维持平稳。", money: 0, fans: 5 }
+            ]
+        },
+        {
+            title: "☕ 杀青戏请客",
+            desc: "马上要拍最后一场杀青重头戏了，全组工作人员连续高负荷运转了15个小时...",
+            opts: [
+                { text: "【大手笔请全场】包下两辆冰淇淋车和星巴克空降片场！", log: "全剧组士气暴涨！大呼你是天使，拍最后一场戏时格外卖力！", money: -40, fans: 15 },
+                { text: "【口头加油】给大家分发口香糖，挨个握手道辛苦。", log: "礼轻情意重，大家也心满意足撑完了全程。", money: 0, fans: 5 }
+            ]
+        },
+        {
+            title: "🎨 剧本错漏纠纷",
+            desc: "你在围读剧本时，突然敏锐地发现女主角中期的某段行为逻辑完全前后矛盾，不符合人设...",
+            opts: [
+                { text: "【连夜找编剧】买两杯咖啡去找编剧通宵探讨，理顺逻辑。", log: "编剧狂喜改出神级剧本！后期剪辑出来的连贯度直接封神！", money: 15, fans: 15 },
+                { text: "【按剧本演】不管逻辑死活，只要导演觉得行，我就照本宣科。", log: "演得很轻松，省下了大把时间和精力。", money: 0, fans: 0 }
+            ]
+        },
+        {
+            title: "📦 探班小插曲",
+            desc: "一个年仅7岁的小姑娘粉丝瞒着家长偷偷坐火车来到荒郊野外探班你...",
+            opts: [
+                { text: "【自掏路费送回】自掏腰包给小姑娘买返程票，并严厉教育她安全第一。", log: "正能量拉满！新闻曝光后，官媒点名表扬你树立了正向偶像标杆！", money: -15, fans: 50 },
+                { text: "【留她在保姆车】让她在保姆车里吃零食看完拍摄，再通知家长来领。", log: "小女孩追星成功，十分开心。", money: -5, fans: 15 }
+            ]
+        },
+        {
+            title: "🩹 危险的爆破戏",
+            desc: "今天有一场要近距离奔跑的爆破炸点戏，场务老师似乎没有调整好烟雾间距...",
+            opts: [
+                { text: "【亲自上阵】为了镜头的连贯真实性，拒绝文替，硬着头皮冲！", log: "画面震撼无比！手臂虽有轻微熏伤，但路透看呆路人！", money: 20, fans: 45 },
+                { text: "【申请替身】不拿生命开玩笑，请求专业的专业爆破替身上。", log: "安全完工，虽然镜头少了一点特写，但完全在掌控内。", money: 0, fans: 0 }
+            ]
+        },
+        {
+            title: "🎬 导演临时考演技",
+            desc: "导演突然递给你一个新写好的哭戏小卡片，让你在30秒内不借助眼药水直接落下左眼眼泪...",
+            opts: [
+                { text: "【一秒入戏】调动毕生伤心回忆，第18秒精准滑落一颗泪珠！", log: "导演高呼绝了！直接把这个画面剪进先导预告片里作为超级卖点！", money: 30, fans: 30 },
+                { text: "【情绪不到位】酝酿了半天没哭出来，最后尴尬地笑了场。", log: "导演表示没关系，最后使用了传统催泪手法替代。", money: -5, fans: 0 }
+            ]
+        }
+    ];
+
     let userRole = "";
     let userGenre = "";
     let selectedScript = null;
     
-    // 新增游戏状态变量
-    let cpChoice = null; // 'agree' 营业, 'refuse' 拒绝, null 未选
+    // 游戏核心状态控制变量
+    let cpChoice = null; 
     let finalMoney = 0;
+    let finalFans = 0;
+    let selectedEvents = [];
+    let currentEventIndex = 0; // 核心：当前进行到第几个随机事件了
 
     function refreshOptions() {
         userRole = "";
@@ -127,6 +308,9 @@
         selectedScript = null;
         cpChoice = null;
         finalMoney = 0;
+        finalFans = 0;
+        selectedEvents = [];
+        currentEventIndex = 0;
         
         document.getElementById('selector').style.display = 'flex';
         document.getElementById('script-area').style.display = 'none';
@@ -153,10 +337,8 @@
             span.onclick = () => {
                 Array.from(container.children).forEach(c => c.classList.remove('selected'));
                 span.classList.add('selected');
-                
                 if(type === 'role') userRole = text;
                 if(type === 'genre') userGenre = text;
-
                 if(userRole && userGenre) {
                     document.getElementById('confirm-btn').style.display = 'inline-block';
                 }
@@ -165,6 +347,7 @@
         });
     }
 
+    // 2. 确认剧本并进行极小概率试戏判定
     function confirmSelection() {
         selectedScript = movieScripts.find(s => s.role === userRole && s.genre === userGenre);
 
@@ -177,140 +360,218 @@
         document.getElementById('confirm-btn').style.display = 'none';
         const area = document.getElementById('script-area');
         area.style.display = 'block';
-        area.innerHTML = '<div class="loading">导演正在疯狂码字中...</div>';
+        area.innerHTML = '<div class="loading">正在前往剧组试戏中...</div>';
 
         setTimeout(() => {
+            // 🎬 经典判定：10%概率被刷掉
+            if (Math.random() < 0.1) {
+                area.innerHTML = `
+                    <div style="text-align:center; padding:20px; color:#c0392b; font-weight:bold;">
+                        ❌ 试戏遗憾落选！<br><br>
+                        制片人觉得你的眼缘与《${selectedScript.title}》有一丝丝偏差，最终挑选了对家演员……
+                    </div>
+                `;
+                document.getElementById('rand-btn').innerText = '回保姆车重选';
+                return;
+            }
+
+            // 成功试戏通过，展示剧本，并强行推出“是否炒CP”卡片
             area.innerHTML = `
                 <div class="script-title">《${selectedScript.title}》</div>
-                <div style="font-size:12px; color:#666; margin-bottom:8px;">主演角色：${userRole} | 影片类型：${userGenre}</div>
-                <div class="script-content">${selectedScript.desc}</div>
+                <div style="font-size:12px; color:#666; margin-bottom:8px;">角色配置：${userRole} | 电影类型：${userGenre}</div>
+                <div class="script-content" style="background:#fdfaf2; padding:10px; border-left:3px solid #d35400; font-size:13px; margin-bottom:12px;">${selectedScript.desc}</div>
                 
-                <div class="cp-box">
-                    <div class="cp-title">💞 突发！投资方为了热度要求你与同剧组演员“炒CP”</div>
-                    <div style="font-size:11px; color:#666; margin-bottom:5px;">【同意】若爆火收益翻倍，若扑街会被反噬！【拒绝】纯靠作品说话，稳健但上限较低。</div>
-                    <div class="cp-btns">
-                        <button class="cp-btn" id="cp-yes" onclick="selectCP('agree')">配合营业 (高风险高收益)</button>
-                        <button class="cp-btn" id="cp-no" onclick="selectCP('refuse')">拒绝炒作 (专注演技)</button>
+                <div class="interactive-card" id="cp-card">
+                    <div class="card-title cp-title">💞 突发！片方为了宣发热度，疯狂暗示你与同剧组演员“炒作CP”</div>
+                    <div style="font-size:11px; color:#666;">
+                        【全力营业】：若电影最后爆火，收益与新粉会疯狂翻倍！若扑街，则会被路人反噬嘲讽！<br>
+                        【专注独美】：稳打稳扎，不被营销裹挟。
+                    </div>
+                    <div class="choice-btn-group">
+                        <button class="choice-opt-btn" id="cp-yes" onclick="makeCPChoice('agree')">❤️ 配合营业 (高风险、高回报)</button>
+                        <button class="choice-opt-btn" id="cp-no" onclick="makeCPChoice('refuse')">🛡️ 婉言拒绝 (专注演员本身)</button>
                     </div>
                 </div>
-                <hr style="border:none; border-top:1px dashed #5d4037; margin:10px 0;">
-                <div style="text-align:center; font-size:13px;">—— 请选择是否炒CP后开机 ——</div>
             `;
+            
+            // 炒CP决定之前，【开机拍摄】按钮隐藏或锁死
             document.getElementById('shoot-btn').style.display = 'inline-block';
-            document.getElementById('shoot-btn').disabled = true; // 必须选择CP走向才能开机
-            document.getElementById('rand-btn').innerText = '放弃并重选';
+            document.getElementById('shoot-btn').disabled = true; 
+            document.getElementById('rand-btn').innerText = '不拍了重选';
         }, 1200);
     }
 
-    // 选择CP倾向
-    function selectCP(choice) {
+    // 做出CP抉择后，才允许点击【开机拍摄】
+    function makeCPChoice(choice) {
         cpChoice = choice;
-        document.getElementById('cp-yes').className = 'cp-btn' + (choice === 'agree' ? ' active' : '');
-        document.getElementById('cp-no').className = 'cp-btn' + (choice === 'refuse' ? ' active' : '');
-        document.getElementById('shoot-btn').disabled = false; // 解锁开机按钮
+        document.getElementById('cp-yes').className = 'choice-opt-btn' + (choice === 'agree' ? ' cp-active' : '');
+        document.getElementById('cp-no').className = 'choice-opt-btn' + (choice === 'refuse' ? ' cp-active' : '');
+        
+        // 激活开机拍摄按钮
+        document.getElementById('shoot-btn').disabled = false;
     }
 
-    // 开始拍摄并计算最终走向
-    function startShoot() {
+    // 3. 点击【开机拍摄】进入突发随机事件时间轴
+    function startShootFlow() {
         document.getElementById('shoot-btn').style.display = 'none';
         document.getElementById('rand-btn').style.display = 'none';
-        
-        // 移除CP选择按钮的点击事件，使其固化
-        document.getElementById('cp-yes').removeAttribute('onclick');
-        document.getElementById('cp-no').removeAttribute('removeAttribute');
 
+        // 随机锁死 2 个带有选项的选择性随机事件
+        selectedEvents = [...choiceEventsPool].sort(() => 0.5 - Math.random()).slice(0, 2);
+        currentEventIndex = 0;
+
+        // 清理掉原有的炒CP卡片区，专门渲染事件舞台
         const area = document.getElementById('script-area');
-        // 追加拍摄中动画
-        const processDiv = document.createElement('div');
-        processDiv.className = 'loading';
-        processDiv.innerText = '🎬 紧张拍摄中，后期剪辑赶工中...';
-        area.appendChild(processDiv);
-        area.scrollTop = area.scrollHeight; // 滚动到底部
+        area.innerHTML = `
+            <div class="script-title" style="text-align:center; color:#2980b9;">🎬 《${selectedScript.title}》拍摄大幕拉开...</div>
+            <div id="history-box" style="margin-bottom:10px;"></div>
+            <div id="current-event-stage"></div>
+        `;
+
+        // 抛出第一个事件
+        nextEvent();
+    }
+
+    // 核心流控制：依次显示单个事件卡片
+    function nextEvent() {
+        if (currentEventIndex < selectedEvents.length) {
+            const ev = selectedEvents[currentEventIndex];
+            const stage = document.getElementById('current-event-stage');
+            
+            stage.innerHTML = `
+                <div class="interactive-card event-card">
+                    <div class="card-title ev-title">⚠️ 剧组事件 (${currentEventIndex + 1}/${selectedEvents.length}): ${ev.title}</div>
+                    <div style="font-size:13px; color:#444; margin-bottom:8px;">${ev.desc}</div>
+                    <div class="choice-btn-group">
+                        <button class="choice-opt-btn" onclick="makeEventChoice(0)">👉 ${ev.opts[0].text}</button>
+                        <button class="choice-opt-btn" onclick="makeEventChoice(1)">👉 ${ev.opts[1].text}</button>
+                    </div>
+                </div>
+            `;
+        } else {
+            // 所有带选择的随机事件全部处理完了，跳转大结局最终清算！
+            showFinalMovieResult();
+        }
+    }
+
+    // 用户选择完单个事件的某个选项
+    function makeEventChoice(optIdx) {
+        const ev = selectedEvents[currentEventIndex];
+        const chosenOpt = ev.opts[optIdx];
+
+        // 累加本次选项带给这盘局的最终收益/损失
+        finalMoney += chosenOpt.money;
+        finalFans += chosenOpt.fans;
+
+        // 把这个完成的记录沉淀归档到上方历史框里
+        const historyBox = document.getElementById('history-box');
+        const logItem = document.createElement('div');
+        logItem.className = 'history-item';
+        logItem.innerHTML = `<strong>${ev.title} 抉择归档：</strong>${chosenOpt.log} <span style="color:#d35400;">(片酬:${chosenOpt.money >=0 ? '+':''}${chosenOpt.money} | 粉丝:${chosenOpt.fans >=0 ? '+':''}${chosenOpt.fans})</span>`;
+        historyBox.appendChild(logItem);
+
+        // 指针下移，开启下一个事件选择
+        currentEventIndex++;
+        nextEvent();
+    }
+
+    // 4. 事件全选完了，进行市场大结局判定
+    function showFinalMovieResult() {
+        const stage = document.getElementById('current-event-stage');
+        stage.innerHTML = '<div class="loading">🎬 拍摄完满杀青，影片正在进入疯狂的院线排片和首映口碑清算中...</div>';
 
         setTimeout(() => {
-            processDiv.remove(); // 移除加载字样
-            
-            // 1. 随机决定电影市场走向 (扑街 30% / 平淡 40% / 爆火 30%)
+            // 🎲 随机大走向判定：扑街 30% / 表现平平 40% / 爆火 30%
             const rand = Math.random();
-            let trend = 'normal'; // 'boom'(扑), 'normal'(平淡), 'burst'(爆火)
+            let trend = 'normal'; 
             let trendText = '';
-            let baseMoney = 100; // 基础片酬
+            let trendMoney = 0;
+            let trendFans = 0;
             let resultClass = '';
 
             if (rand < 0.3) {
                 trend = 'boom';
-                trendText = '📉 票房扑街：宣发拉胯，剧情被喷，首周院线直接砍座……';
-                baseMoney = 30; 
+                trendText = '📉 【院线大扑街】排片拉胯，逻辑漏洞被吐槽上热搜，最终惨淡下映……';
+                trendMoney = 35; 
+                trendFans = -20;
                 resultClass = 'result-box result-boom';
             } else if (rand < 0.7) {
                 trend = 'normal';
-                trendText = '🐱 表现平平：无功无过，粉丝包场，院线勉强回本。';
-                baseMoney = 100;
+                trendText = '🐱 【表现平平】质量无功无过，粉丝包场积极，勉强保本路人反应普通。';
+                trendMoney = 110;
+                trendFans = 25;
                 resultClass = 'result-box result-normal';
             } else {
                 trend = 'burst';
-                trendText = '🔥 全网爆火！现象级出圈，单日票房夺冠，喜提多条热搜！';
-                baseMoney = 250;
+                trendText = '🔥 【现象级大爆火！】直接红出圈层！疯狂刷新单日票房记录，热搜连续霸榜！';
+                trendMoney = 280;
+                trendFans = 140;
                 resultClass = 'result-box result-burst';
             }
 
-            // 2. 根据CP抉择计算最终利益加成
+            // 联动第4步做的“是否炒CP”做综合乘数核算
             let cpText = "";
-            let multiplier = 1.0;
+            let moneyMult = 1.0;
+            let fansMult = 1.0;
 
             if (cpChoice === 'agree') {
                 if (trend === 'burst') {
-                    multiplier = 2.0; // 爆火且炒CP，收益翻倍！
-                    cpText = "【CP加成】戏内戏外疯狂发糖，吸干了CP粉的钱包，收益暴增！";
+                    moneyMult = 2.0; fansMult = 2.5;
+                    cpText = "💥 【炒CP红利】戏内戏外高能合体发糖！吸干了CP粉的钱包，喜提全网“神仙情侣”标签，利益大翻倍！";
                 } else if (trend === 'boom') {
-                    multiplier = 0.3; // 扑街还炒CP，被疯狂反噬
-                    cpText = "【CP反噬】电影太烂还硬发糖，被全网群嘲“工业糖精”，口碑崩塌，收益血亏！";
+                    moneyMult = 0.4; fansMult = 0.1;
+                    cpText = "🤮 【老工业糖精】电影口碑本来就烂，还疯狂贴贴，被全网反噬讽刺为工业假糖，活该大脱粉！";
                 } else {
-                    multiplier = 1.2; // 平淡时炒CP稍微多赚一点
-                    cpText = "【CP营业】靠着营业互动，勉强维持住了微博超话热度。";
+                    moneyMult = 1.2; fansMult = 1.4;
+                    cpText = "💞 【营业日常】配合剧组完成了正常的扫楼、双人直播合体，稳固了一批双人限定剧粉。";
                 }
             } else { // refuse
                 if (trend === 'burst') {
-                    multiplier = 1.2; // 拒绝炒作但爆火，因“清流/专注演技”获得额外好评
-                    cpText = "【拒绝炒作】虽没炒CP，但由于你演技炸裂，被赞为业内清流，身价稳步上升！";
+                    moneyMult = 1.3; fansMult = 1.6;
+                    cpText = "✨ 【独美演技派】虽然当时拒绝了营销炒作，但靠着震撼的演技直接打烂黑子的脸，被赞为内娱清流，路人缘吸爆！";
                 } else if (trend === 'boom') {
-                    multiplier = 0.9; // 扑街了，但因为没炒作，没有额外负面黑料
-                    cpText = "【拒绝炒作】幸好没有配合炒CP，虽然片子扑了，但个人羽毛总算保住了。";
+                    moneyMult = 0.9; fansMult = 1.0; 
+                    cpText = "🛡️ 【未沾污名】幸好当时坚守底线专注演技，虽然这片子没能爆起来，但你至少成功保全了个人风评。";
                 } else {
-                    multiplier = 1.0;
-                    cpText = "【拒绝炒作】唯粉与剧粉各司其职，中规中矩地完成了单片结算。";
+                    moneyMult = 1.0; fansMult = 1.0;
+                    cpText = "🌱 【专注于戏】唯粉与散客各司其职，你稳定、不留隐患地完成了这盘单片任务。";
                 }
             }
 
-            // 计算最终得到的金币/资金
-            finalMoney = Math.round(baseMoney * multiplier);
+            // 终极属性算账 (事件积累 + 市场最终走向) * 炒CP系数
+            let baseRewardMoney = 100 + finalMoney;
+            let baseRewardFans = 20 + finalFans;
 
-            // 3. 将结果追加渲染到界面上
-            const resultDiv = document.createElement('div');
-            resultDiv.innerHTML = `
+            finalMoney = Math.max(15, Math.round((baseRewardMoney + trendMoney) * moneyMult));
+            finalFans = Math.round((baseRewardFans + trendFans) * fansMult);
+
+            stage.innerHTML = `
                 <div class="${resultClass}">
-                    <div>${trendText}</div>
-                    <div style="font-size:12px; font-weight:normal; margin-top:5px;">${cpText}</div>
-                    <div style="font-size:16px; margin-top:8px; color:#d35400;">💰 最终结算总收益：+${finalMoney} 资金</div>
+                    <div style="font-size:15px; margin-bottom:5px;">${trendText}</div>
+                    <div style="font-size:11px; font-weight:normal; line-height:1.4; color:#666;">${cpText}</div>
+                    <hr style="border:none; border-top:1px dashed #aaa; margin:8px 0;">
+                    <div style="font-size:16px; color:#d35400;">
+                        💰 片酬结算：+${finalMoney} 资金 | ✨ 粉丝变动：${finalFans >= 0 ? '+' : ''}${finalFans}
+                    </div>
                 </div>
             `;
-            area.appendChild(resultDiv);
-            area.scrollTop = area.scrollHeight;
-
-            // 显示最终杀青按钮
+            
+            // 展示杀青领奖按钮
             document.getElementById('finish-btn').style.display = 'inline-block';
+            
+            // 让滚动条滑到最底下确保能看见结果
+            const area = document.getElementById('script-area');
+            area.scrollTop = area.scrollHeight;
         }, 1500);
     }
 
-    // 杀青并向父窗口发送最终报酬
+    // 5. 跨跨窗体发包
     function finishAndReward() {
-        // 向母窗口 PetGame 发送带有金钱数据的消息
         window.parent.postMessage({
             event: 'workFinished',
             money: finalMoney,
-            role: userRole,
-            genre: userGenre,
-            title: selectedScript ? selectedScript.title : ""
+            fans: finalFans, 
+            title: selectedScript ? selectedScript.title : "新电影"
         }, '*');
     }
 

@@ -94,7 +94,7 @@
 <div id="scene-card" class="game-scene">
     <div class="game-header">
         <h3 style="margin: 5px 0;">🃏 宣萱盲袋抽卡</h3>
-        <span style="font-size:11px; opacity:0.7;">每张卡片都固定奖励 $10 哦！</span>
+        <span style="font-size:11px; opacity:0.7;"> </span>
     </div>
     <div class="gacha-container">
         <div class="stage-section">
@@ -211,15 +211,15 @@
                     try { localStorage.setItem('mini_gacha_db', JSON.stringify(gachaHistory)); } catch(e){}
                     updateGachaUI();
 
-                    // 3. 固定奖励 10 元
-                    earnedMoney += 10; 
+                    // 3. 固定奖励 0 元
+                    earnedMoney += 0; 
 
                 } catch (e) {}
             }, 500);
 
             setTimeout(() => {
                 btn.disabled = false; btn.innerText = "再抽一袋";
-                status.innerText = `抽中: [${result.rarity}] ${result.name} (奖励 $10)`;
+                status.innerText = `抽中: [${result.rarity}] ${result.name} `;
             }, 800);
         } catch (err) {
             btn.disabled = false; btn.innerText = "重试";
