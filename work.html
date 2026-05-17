@@ -368,7 +368,7 @@
                 area.innerHTML = `
                     <div style="text-align:center; padding:20px; color:#c0392b; font-weight:bold;">
                         ❌ 试戏遗憾落选！<br><br>
-                        制片人觉得你的眼缘与《${selectedScript.title}》有一丝丝偏差，最终挑选了对家演员……
+                        制片人觉得你的眼缘与${selectedScript.title}有一丝丝偏差，最终挑选了对家演员……
                     </div>
                 `;
                 document.getElementById('rand-btn').innerText = '回保姆车重选';
@@ -377,7 +377,7 @@
 
             // 成功试戏通过，展示剧本，并强行推出“是否炒CP”卡片
             area.innerHTML = `
-                <div class="script-title">《${selectedScript.title}》</div>
+                <div class="script-title">${selectedScript.title}</div>
                 <div style="font-size:12px; color:#666; margin-bottom:8px;">角色配置：${userRole} | 电影类型：${userGenre}</div>
                 <div class="script-content" style="background:#fdfaf2; padding:10px; border-left:3px solid #d35400; font-size:13px; margin-bottom:12px;">${selectedScript.desc}</div>
                 
