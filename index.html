@@ -38,15 +38,15 @@
         }
 
         #pet-anchor {
-            position: absolute; bottom: 20px; left: 50%;
+            position: absolute; bottom: 0px; left: 50%;
             transform: translateX(-50%); transition: left 0.5s linear, opacity 0.5s;
             display: flex; flex-direction: column; align-items: center;
         }
 
-        #pet-img { width: 250px; height: auto; image-rendering: auto; }
+        #pet-img { width: 420px; height: auto; image-rendering: auto; }
 
         #bubble {
-            position: absolute; bottom: 105%; background: white; 
+            position: absolute; bottom: 70%; background: white; 
             border: 3px solid var(--border-color); border-radius: 12px;
             padding: 8px 16px; font-size: 14px; display: none; z-index: 10;
             white-space: nowrap; box-shadow: 3px 3px 0 rgba(0,0,0,0.1);
@@ -285,7 +285,7 @@
         <button class="icon-btn" onclick="handleAction('feed')" title="投餵蛋糕 (15$)">🍰</button>
         <button class="icon-btn" onclick="handleAction('sleep')" title="命令補覺">💤</button>
         <button class="icon-btn" onclick="handleAction('play')" title="陪它玩耍">🧸</button>
-        <button id="selfie-btn" class="icon-btn lock-style" onclick="handleAction('selfie')" title="未解鎖自拍 (500$解鎖)">🔒</button>
+        <button id="selfie-btn" class="icon-btn lock-style" onclick="handleAction('selfie')" title="未解鎖自拍 (1000$解鎖)">🔒</button>
         <button class="icon-btn work-btn" onclick="openWorkWindow()" title="🎬 拍戲打工">🎭</button>
         <button class="icon-btn album-btn" onclick="toggleAlbum()" title="查看影集">🖼️</button>
         <button class="icon-btn gashapon-btn" onclick="openGashapon()" title="去扭蛋">🎰</button>
@@ -478,8 +478,8 @@
         pet.isAnimating = false;
         pet.state = 'idle';
         
-        addLog(`${pet.name} 玩耍結束！心情增加 +${happy}，贏opened了獎勵 $${money}。`);
-        say("這個遊戲太讚了，好好玩！");
+        addLog(`${pet.name} 玩耍結束！心情增加 +${happy}，贏了獎勵 $${money}。`);
+        say("我還想玩！");
         updateUI();
 
         if (!pet.isGameOver && Math.random() < 0.15) {
@@ -495,7 +495,7 @@
         pet.isAnimating = false;
         pet.state = 'idle';
         addLog(`中途退出了遊戲，${pet.name} 還沒玩夠呢。`);
-        say("啊？怎麼不玩了呀...");
+        say("怎麼不玩了呀...");
         updateUI();
     }
 
@@ -719,11 +719,11 @@
         
         if (action === 'selfie') {
             if (!pet.isSelfieUnlocked) {
-                if (confirm("自拍功能尚未開啟！是否花費 5000$ 購買“拍立得相機”解鎖？")) {
-                    if (pet.money >= 5000) {
-                        pet.money -= 5000;
+                if (confirm("自拍功能尚未開啟！是否花費 1000$ 購買“拍立得相機”解鎖？")) {
+                    if (pet.money >= 1000) {
+                        pet.money -= 1000;
                         pet.isSelfieUnlocked = true;
-                        addLog(`成功解鎖自拍功能！花費了 5000$。`);
+                        addLog(`成功解鎖自拍功能！花費了 1000$。`);
                         say("哇！我有相機啦！");
                         updateUI();
                     } else {

@@ -20,12 +20,12 @@ const SELFIE_POOL = [
 // 动画帧配置
 const ANIM_FRAMES = {
     blink: ["stand_l.png", "blink_1.png", "blink_2.png", "stand_l.png"],
-    feed: { loop: ["eat_1.png", "eat_3.png", "eat_2.png"] },
-    sleep: { pre: ["stand_l.png"], loop: ["sleep_1.png", "sleep_2.png", "sleep_3.png"], post: ["stand_l.png"] },
-    scared: ["scared_2.png","scared_1.png", "dazed.png", "dazed_2.png","dazed_2.png"],
-    funny: ["stand_l.png", "blink_1.png", "stand_l.png"],
-    walk_left: ["walk_l1.png", "stand_l.png","walk_l2.png","stand_l.png"],
-    walk_right: ["walk_r1.png", "stand_r.png","walk_r2.png", "stand_r.png"]
+    feed: { loop: ["eat_1.png", "eat_2.png", "eat_3.png"] },
+    sleep: { pre: ["stand_l.png"], loop: ["sleep_1.png", "sleep_2.png", "sleep_3.png", "sleep_4.png"], post: ["stand_l.png"] },
+    scared: {pre:["dazed.png"], loop:  ["dazed_2.png","dazed_3.png"]},
+    funny: ["stand_l.png", "blink_1.png", "blink_2.png", "stand_l.png"],
+    walk_left: {loop:["walk_l.png", "stand_l.png"]},
+    walk_right: {loop:["walk_r.png", "stand_r.png"]}
 };
 
 // 状态标签映射
@@ -54,11 +54,11 @@ const FUNNY_EVENTS_POOL = [
     { msg: "{name} 試圖跳舞，但差點摔倒。", say: "哎呀！！", anim: ANIM_FRAMES.scared },
     { msg: "{name} 正在和影子深度交流。", say: "嗶嗶...信號穩定。", anim: ["stand_l.png", "stand_r.png", "stand_l.png"] },
     { msg: "{name} 突然原地旋轉了360度。", say: "蕪湖！", anim: ["stand_l.png", "stand_r.png", "stand_l.png", "stand_r.png"] },
-    { msg: "{name} 假裝自己是一顆安静的玉子。", say: "看不見我...", anim: ["magic_1.png","magic_2.png","magic_3.png","magic_4.png","magic_3.png","magic_4.png","magic_3.png","magic_4.png","magic_3.png","magic_4.png","magic_3.png"] },
+    { msg: "{name} 假裝自己是一顆安静的玉子。", say: "看不見我...", anim: ["magic_1.png","magic_2.png","magic_3.png","magic_5.png","magic_4.png","magic_3.png","magic_5.png","magic_4.png","magic_3.png","magic_5.png","magic_4.png","magic_6.png"] },
     { msg: "{name} 偷偷出門撿破爛賺了 $2", say: "哇帶回家還能用！", anim: ["blink_1.png","blink_2.png",  "stand_l.png"], earn: 2 },
     { msg: "{name} 偷偷出門打工賺了 $5 。", say: "嘿嘿，發財了！", anim: ["eat_1.png", "stand_l.png"], earn: 5 },
-    { msg: "{name} 幫鄰居遛小狗，獲得了 $3 報酬。 ", say: "勞動最光榮~", anim: ["walk_l1.png", "walk_r1.png", "stand_l.png"], earn: 3 },
-    { msg: "{name} 偷听八卦听呆了。", say: "到底在干嘛？", anim: ["sl_2.png", "sl_1.png", "sl_1.png"] }
+    { msg: "{name} 幫鄰居遛小狗，獲得了 $3 報酬。 ", say: "勞動最光榮~", anim: ["walk_l.png", "walk_r.png", "stand_l.png"], earn: 3 },
+    { msg: "{name} 偷听八卦听呆了。", say: "到底在干嘛？", anim: ["sl_1.png", "sl_2.png", "sl_2.png"] }
 ];
 
 // 狗仔队偷拍 15 条核心爆料文案池
