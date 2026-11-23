@@ -22,7 +22,7 @@ const ANIM_FRAMES = {
     blink: ["stand_l.png", "blink_1.png", "blink_2.png", "stand_l.png"],
     feed: { loop: ["eat_1.png", "eat_2.png", "eat_3.png"] },
     sleep: { pre: ["stand_l.png"], loop: ["sleep_1.png", "sleep_2.png", "sleep_3.png", "sleep_4.png"], post: ["stand_l.png"] },
-    scared: ["dazed_1.png", "dazed_2.png","dazed_3.png"],
+    scared: ["dazed_1.png", "dazed_2.png", "dazed_3.png"],
     funny: ["stand_l.png", "blink_1.png", "blink_2.png", "stand_l.png"],
     walk_left: {loop:["walk_l.png", "stand_l.png"]},
     walk_right: {loop:["walk_r.png", "stand_r.png"]}
